@@ -3,64 +3,67 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-public class QuestEditorNode : Node
+namespace DialogueFramework.Editor
 {
-    public QuestData Data { get; }
-
-    public QuestEditorNode(Vector2 size, QuestData data)
+    public class QuestEditorNode : Node
     {
-        Data = data;
+        public QuestData Data { get; }
 
-        title = data.title;
-        style.width = 220;
-
-        // title
-        extensionContainer.Add(new Label("Title"));
-
-        var textField = new TextField("Title");
-        textField.SetValueWithoutNotify(data.title);
-        textField.RegisterValueChangedCallback(evt =>
+        public QuestEditorNode(Vector2 size, QuestData data)
         {
-            Data.title = evt.newValue;
-            title = evt.newValue;
-        });
-        extensionContainer.Add(textField);
+            Data = data;
 
-        // description
-        extensionContainer.Add(new Label("Description"));
+            title = data.title;
+            style.width = 220;
 
-        var descriptionField = new TextField("Description");
-        descriptionField.SetValueWithoutNotify(data.description);
-        descriptionField.RegisterValueChangedCallback(evt =>
+            // title
+            extensionContainer.Add(new Label("Title"));
+
+            var textField = new TextField("Title");
+            textField.SetValueWithoutNotify(data.title);
+            textField.RegisterValueChangedCallback(evt =>
+            {
+                Data.title = evt.newValue;
+                title = evt.newValue;
+            });
+            extensionContainer.Add(textField);
+
+            // description
+            extensionContainer.Add(new Label("Description"));
+
+            var descriptionField = new TextField("Description");
+            descriptionField.SetValueWithoutNotify(data.description);
+            descriptionField.RegisterValueChangedCallback(evt =>
+            {
+                Data.description = evt.newValue;
+            });
+            extensionContainer.Add(descriptionField);
+
+            // objectives
+            extensionContainer.Add(new Label("Objectives"));
+
+            var objectivesList = new ListView(data.objectives, 20, () => new Label(), (element, i) =>
+            {
+                var objective = data.objectives[i];
+                (element as Label).text = objective.description;
+            });
+            extensionContainer.Add(objectivesList);
+
+            SetPosition(new Rect(Vector2.zero, size));
+
+            RefreshExpandedState();
+            RefreshPorts();
+        }
+
+        public void SetNodeSize(float width, float height)
         {
-            Data.description = evt.newValue;
-        });
-        extensionContainer.Add(descriptionField);
+            style.width = width;
+            style.height = height;
 
-        // objectives
-        extensionContainer.Add(new Label("Objectives"));
-
-        var objectivesList = new ListView(data.objectives, 20, () => new Label(), (element, i) =>
-        {
-            var objective = data.objectives[i];
-            (element as Label).text = objective.description;
-        });
-        extensionContainer.Add(objectivesList);
-
-        SetPosition(new Rect(Vector2.zero, size));
-
-        RefreshExpandedState();
-        RefreshPorts();
-    }
-
-    public void SetNodeSize(float width, float height)
-    {
-        style.width = width;
-        style.height = height;
-
-        Rect rect = GetPosition();
-        rect.width = width;
-        rect.height = height;
-        SetPosition(rect);
+            Rect rect = GetPosition();
+            rect.width = width;
+            rect.height = height;
+            SetPosition(rect);
+        }
     }
 }

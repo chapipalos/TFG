@@ -4,190 +4,193 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Dialogue : MonoBehaviour
+namespace DialogueFramework
 {
-    public GraphData graphData;
-
-    private Dictionary<string, DialogueNode> nodesByGuid = new Dictionary<string, DialogueNode>();
-    private Dictionary<string, List<string>> outgoingLinks = new Dictionary<string, List<string>>();
-
-    private DialogueNode currentNode;
-
-    public TextMeshProUGUI m_DialogueText;
-    public Button m_NextDialogueButton;
-
-    void Start()
+    public class Dialogue : MonoBehaviour
     {
-        if (graphData == null)
+        public GraphData graphData;
+
+        private Dictionary<string, DialogueNode> nodesByGuid = new Dictionary<string, DialogueNode>();
+        private Dictionary<string, List<string>> outgoingLinks = new Dictionary<string, List<string>>();
+
+        private DialogueNode currentNode;
+
+        public TextMeshProUGUI m_DialogueText;
+        public Button m_NextDialogueButton;
+
+        void Start()
         {
-            Debug.LogError("GraphData no asignado.");
-            return;
-        }
-
-        BuildNodes();
-        BuildLinks();
-
-        string startNodeGuid = FindStartNodeGuid();
-
-        if (!string.IsNullOrEmpty(startNodeGuid) && nodesByGuid.TryGetValue(startNodeGuid, out DialogueNode startNode))
-        {
-            currentNode = startNode;
-            currentNode.StartDialogue();
-        }
-        else
-        {
-            Debug.LogWarning("No se encontró nodo inicial.");
-        }
-
-        m_NextDialogueButton.onClick.AddListener(NextDialoguePressed);
-    }
-
-    void Update()
-    {
-        if (currentNode != null)
-        {
-            currentNode.UpdateDialogue();
-            m_DialogueText.text = currentNode.stringBuilder.ToString();
-        }
-        else
-        {
-            m_DialogueText.text = "";
-        }
-    }
-
-    private void BuildNodes()
-    {
-        nodesByGuid.Clear();
-
-        foreach (NodeData nodeData in graphData.nodes)
-        {
-            DialogueNode dialogueNode = new DialogueNode();
-            dialogueNode.node = nodeData;
-            nodesByGuid[nodeData.guid] = dialogueNode;
-        }
-    }
-
-    private void BuildLinks()
-    {
-        outgoingLinks.Clear();
-
-        foreach (NodeLinkData link in graphData.links)
-        {
-            if (!outgoingLinks.ContainsKey(link.outputNodeGuid))
+            if (graphData == null)
             {
-                outgoingLinks[link.outputNodeGuid] = new List<string>();
+                Debug.LogError("GraphData no asignado.");
+                return;
             }
 
-            outgoingLinks[link.outputNodeGuid].Add(link.inputNodeGuid);
-        }
-    }
+            BuildNodes();
+            BuildLinks();
 
-    private string FindStartNodeGuid()
-    {
-        HashSet<string> nodesWithIncomingLinks = new HashSet<string>();
+            string startNodeGuid = FindStartNodeGuid();
 
-        foreach (NodeLinkData link in graphData.links)
-        {
-            nodesWithIncomingLinks.Add(link.inputNodeGuid);
-        }
-
-        foreach (NodeData node in graphData.nodes)
-        {
-            if (!nodesWithIncomingLinks.Contains(node.guid))
+            if (!string.IsNullOrEmpty(startNodeGuid) && nodesByGuid.TryGetValue(startNodeGuid, out DialogueNode startNode))
             {
-                return node.guid;
+                currentNode = startNode;
+                currentNode.StartDialogue();
+            }
+            else
+            {
+                Debug.LogWarning("No se encontró nodo inicial.");
+            }
+
+            m_NextDialogueButton.onClick.AddListener(NextDialoguePressed);
+        }
+
+        void Update()
+        {
+            if (currentNode != null)
+            {
+                currentNode.UpdateDialogue();
+                m_DialogueText.text = currentNode.stringBuilder.ToString();
+            }
+            else
+            {
+                m_DialogueText.text = "";
             }
         }
 
-        if (graphData.nodes.Count > 0)
-            return graphData.nodes[0].guid;
-
-        return null;
-    }
-
-    public void NextDialoguePressed()
-    {
-        if (currentNode == null)
-            return;
-
-        if (currentNode.getRunning())
+        private void BuildNodes()
         {
-            currentNode.SkipToEnd();
-            return;
+            nodesByGuid.Clear();
+
+            foreach (NodeData nodeData in graphData.nodes)
+            {
+                DialogueNode dialogueNode = new DialogueNode();
+                dialogueNode.node = nodeData;
+                nodesByGuid[nodeData.guid] = dialogueNode;
+            }
         }
 
-        string currentGuid = currentNode.node.guid;
-
-        if (!outgoingLinks.TryGetValue(currentGuid, out List<string> nextNodes) || nextNodes.Count == 0)
+        private void BuildLinks()
         {
-            Debug.Log("Fin del diálogo.");
-            currentNode = null;
-            return;
+            outgoingLinks.Clear();
+
+            foreach (NodeLinkData link in graphData.links)
+            {
+                if (!outgoingLinks.ContainsKey(link.outputNodeGuid))
+                {
+                    outgoingLinks[link.outputNodeGuid] = new List<string>();
+                }
+
+                outgoingLinks[link.outputNodeGuid].Add(link.inputNodeGuid);
+            }
         }
 
-        // De momento toma el primer enlace de salida
-        string nextGuid = nextNodes[0];
-
-        if (nodesByGuid.TryGetValue(nextGuid, out DialogueNode nextNode))
+        private string FindStartNodeGuid()
         {
-            currentNode = nextNode;
-            currentNode.StartDialogue();
+            HashSet<string> nodesWithIncomingLinks = new HashSet<string>();
+
+            foreach (NodeLinkData link in graphData.links)
+            {
+                nodesWithIncomingLinks.Add(link.inputNodeGuid);
+            }
+
+            foreach (NodeData node in graphData.nodes)
+            {
+                if (!nodesWithIncomingLinks.Contains(node.guid))
+                {
+                    return node.guid;
+                }
+            }
+
+            if (graphData.nodes.Count > 0)
+                return graphData.nodes[0].guid;
+
+            return null;
         }
-        else
+
+        public void NextDialoguePressed()
         {
-            Debug.LogWarning($"No se encontró el nodo con guid: {nextGuid}");
-            currentNode = null;
+            if (currentNode == null)
+                return;
+
+            if (currentNode.getRunning())
+            {
+                currentNode.SkipToEnd();
+                return;
+            }
+
+            string currentGuid = currentNode.node.guid;
+
+            if (!outgoingLinks.TryGetValue(currentGuid, out List<string> nextNodes) || nextNodes.Count == 0)
+            {
+                Debug.Log("Fin del diálogo.");
+                currentNode = null;
+                return;
+            }
+
+            // De momento toma el primer enlace de salida
+            string nextGuid = nextNodes[0];
+
+            if (nodesByGuid.TryGetValue(nextGuid, out DialogueNode nextNode))
+            {
+                currentNode = nextNode;
+                currentNode.StartDialogue();
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el nodo con guid: {nextGuid}");
+                currentNode = null;
+            }
         }
     }
-}
 
-[System.Serializable]
-public class DialogueNode
-{
-    public NodeData node;
-    public StringBuilder stringBuilder = new StringBuilder();
-
-    private bool nodeRunning = false;
-    private int textCharIndex = 0;
-
-    public bool getRunning()
+    [System.Serializable]
+    public class DialogueNode
     {
-        return nodeRunning;
-    }
+        public NodeData node;
+        public StringBuilder stringBuilder = new StringBuilder();
 
-    public void setRunning(bool running)
-    {
-        nodeRunning = running;
-    }
+        private bool nodeRunning = false;
+        private int textCharIndex = 0;
 
-    public void StartDialogue()
-    {
-        stringBuilder.Clear();
-        textCharIndex = 0;
-        nodeRunning = true;
-    }
-
-    public void UpdateDialogue()
-    {
-        if (!nodeRunning || string.IsNullOrEmpty(node.dialogue))
-            return;
-
-        if (textCharIndex < node.dialogue.Length)
+        public bool getRunning()
         {
-            stringBuilder.Append(node.dialogue[textCharIndex]);
-            textCharIndex++;
+            return nodeRunning;
         }
-        else
+
+        public void setRunning(bool running)
         {
+            nodeRunning = running;
+        }
+
+        public void StartDialogue()
+        {
+            stringBuilder.Clear();
+            textCharIndex = 0;
+            nodeRunning = true;
+        }
+
+        public void UpdateDialogue()
+        {
+            if (!nodeRunning || string.IsNullOrEmpty(node.dialogue))
+                return;
+
+            if (textCharIndex < node.dialogue.Length)
+            {
+                stringBuilder.Append(node.dialogue[textCharIndex]);
+                textCharIndex++;
+            }
+            else
+            {
+                nodeRunning = false;
+            }
+        }
+
+        public void SkipToEnd()
+        {
+            stringBuilder.Clear();
+            stringBuilder.Append(node.dialogue);
+            textCharIndex = node.dialogue != null ? node.dialogue.Length : 0;
             nodeRunning = false;
         }
-    }
-
-    public void SkipToEnd()
-    {
-        stringBuilder.Clear();
-        stringBuilder.Append(node.dialogue);
-        textCharIndex = node.dialogue != null ? node.dialogue.Length : 0;
-        nodeRunning = false;
     }
 }

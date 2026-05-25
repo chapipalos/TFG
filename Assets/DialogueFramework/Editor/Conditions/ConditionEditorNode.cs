@@ -2,52 +2,56 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-public class ConditionEditorNode : Node
+namespace DialogueFramework.Editor
 {
-    public ConditionData Data { get; }
-
-    public ConditionEditorNode(Vector2 size, ConditionData data)
+    public class ConditionEditorNode : Node
     {
-        Data = data;
-        title = data.name;
+        public ConditionData Data { get; }
 
-        style.width = size.x;
-        style.height = size.y;
-
-        var textField = new TextField("Name");
-        textField.SetValueWithoutNotify(data.name);
-        textField.RegisterValueChangedCallback(evt =>
+        public ConditionEditorNode(Vector2 size, ConditionData data)
         {
-            Data.name = evt.newValue;
-            title = evt.newValue;
-        });
+            Data = data;
+            title = data.name;
 
-        extensionContainer.Add(textField);
+            style.width = size.x;
+            style.height = size.y;
 
-        // Agrega un toggle para marcar si la condición se cumple o no
-        var toggle = new Toggle("Is Condition Met");
-        toggle.SetValueWithoutNotify(data.value);
-        toggle.RegisterValueChangedCallback(evt => {
-            data.value = evt.newValue;
-        });
+            var textField = new TextField("Name");
+            textField.SetValueWithoutNotify(data.name);
+            textField.RegisterValueChangedCallback(evt =>
+            {
+                Data.name = evt.newValue;
+                title = evt.newValue;
+            });
 
-        extensionContainer.Add(toggle);
+            extensionContainer.Add(textField);
+
+            // Agrega un toggle para marcar si la condición se cumple o no
+            var toggle = new Toggle("Is Condition Met");
+            toggle.SetValueWithoutNotify(data.value);
+            toggle.RegisterValueChangedCallback(evt =>
+            {
+                data.value = evt.newValue;
+            });
+
+            extensionContainer.Add(toggle);
 
 
-        RefreshExpandedState();
-        RefreshPorts();
+            RefreshExpandedState();
+            RefreshPorts();
 
-        SetPosition(new Rect(Vector2.zero, size));
-    }
+            SetPosition(new Rect(Vector2.zero, size));
+        }
 
-    public void SetNodeSize(float width, float height)
-    {
-        style.width = width;
-        style.height = height;
+        public void SetNodeSize(float width, float height)
+        {
+            style.width = width;
+            style.height = height;
 
-        Rect rect = GetPosition();
-        rect.width = width;
-        rect.height = height;
-        SetPosition(rect);
+            Rect rect = GetPosition();
+            rect.width = width;
+            rect.height = height;
+            SetPosition(rect);
+        }
     }
 }

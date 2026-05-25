@@ -2,42 +2,45 @@ using UnityEngine.UIElements;
 using UnityEngine;
 using UnityEditor.Experimental.GraphView;
 
-public class ActorEditorNode : Node
+namespace DialogueFramework.Editor
 {
-    public ActorData Data { get; }
-
-    public ActorEditorNode(Vector2 size, ActorData data)
+    public class ActorEditorNode : Node
     {
-        Data = data;
-        title = data.name;
+        public ActorData Data { get; }
 
-        style.width = size.x;
-        style.height = size.y;
-
-        var textField = new TextField("Name");
-        textField.SetValueWithoutNotify(data.name);
-        textField.RegisterValueChangedCallback(evt =>
+        public ActorEditorNode(Vector2 size, ActorData data)
         {
-            Data.name = evt.newValue;
-            title = evt.newValue;
-        });
+            Data = data;
+            title = data.name;
 
-        extensionContainer.Add(textField);
+            style.width = size.x;
+            style.height = size.y;
 
-        RefreshExpandedState();
-        RefreshPorts();
+            var textField = new TextField("Name");
+            textField.SetValueWithoutNotify(data.name);
+            textField.RegisterValueChangedCallback(evt =>
+            {
+                Data.name = evt.newValue;
+                title = evt.newValue;
+            });
 
-        SetPosition(new Rect(Vector2.zero, size));
-    }
+            extensionContainer.Add(textField);
 
-    public void SetNodeSize(float width, float height)
-    {
-        style.width = width;
-        style.height = height;
+            RefreshExpandedState();
+            RefreshPorts();
 
-        Rect rect = GetPosition();
-        rect.width = width;
-        rect.height = height;
-        SetPosition(rect);
+            SetPosition(new Rect(Vector2.zero, size));
+        }
+
+        public void SetNodeSize(float width, float height)
+        {
+            style.width = width;
+            style.height = height;
+
+            Rect rect = GetPosition();
+            rect.width = width;
+            rect.height = height;
+            SetPosition(rect);
+        }
     }
 }
