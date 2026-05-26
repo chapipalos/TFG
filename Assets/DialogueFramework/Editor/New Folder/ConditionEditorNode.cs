@@ -1,19 +1,19 @@
-using UnityEngine.UIElements;
-using UnityEngine;
 using UnityEditor.Experimental.GraphView;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace DialogueFramework.Editor
 {
-    public class ActorEditorNode : Node
+    public class ConditionEditorNode : Node, IListNode<ConditionData>
     {
-        public ActorData Data { get; }
+        public ConditionData Data { get; }
 
-        public ActorEditorNode(Vector2 size, ActorData data)
+        public ConditionEditorNode(Vector2 size, ConditionData data)
         {
-            Data = data;
+            Data  = data;
             title = data.name;
 
-            style.width = size.x;
+            style.width  = size.x;
             style.height = size.y;
 
             var textField = new TextField("Name");
@@ -21,10 +21,14 @@ namespace DialogueFramework.Editor
             textField.RegisterValueChangedCallback(evt =>
             {
                 Data.name = evt.newValue;
-                title = evt.newValue;
+                title     = evt.newValue;
             });
-
             extensionContainer.Add(textField);
+
+            var toggle = new Toggle("Is Condition Met");
+            toggle.SetValueWithoutNotify(data.value);
+            toggle.RegisterValueChangedCallback(evt => data.value = evt.newValue);
+            extensionContainer.Add(toggle);
 
             RefreshExpandedState();
             RefreshPorts();
@@ -34,11 +38,11 @@ namespace DialogueFramework.Editor
 
         public void SetNodeSize(float width, float height)
         {
-            style.width = width;
+            style.width  = width;
             style.height = height;
 
             Rect rect = GetPosition();
-            rect.width = width;
+            rect.width  = width;
             rect.height = height;
             SetPosition(rect);
         }
