@@ -63,6 +63,7 @@ namespace DialogueFramework.Editor
 
             BuildActorDropdown();
             BuildConditionsFoldout();
+            BuildQuestRequirementsFoldout();
             BuildQuestDropdown();
             BuildRepliesFoldout();
 
@@ -364,6 +365,89 @@ namespace DialogueFramework.Editor
             row.Add(dropdown);
             row.Add(toggle);
             row.Add(removeButton);
+            container.Add(row);
+        }
+
+        // ── Quest requirements foldout ───────────────────────────────────────
+
+        private void BuildQuestRequirementsFoldout()
+        {
+            if (Data.questRequirements == null)
+                Data.questRequirements = new List<NodeQuestRequirement>();
+
+            var foldout = new Foldout { text = "Quest requirements", value = false };
+            var container = new VisualElement();
+            foldout.Add(container);
+
+            foreach (var req in Data.questRequirements)
+                AddQuestRequirementRow(container, req);
+
+            foldout.Add(new Button(() =>
+            {
+                if (currentGraph.quests.Count == 0) return;
+                var req = new NodeQuestRequirement
+                {
+                    questGuid = currentGraph.quests[0].guid,
+                    requiredStatus = QuestStatus.Active
+                };
+                Data.questRequirements.Add(req);
+                AddQuestRequirementRow(container, req);
+                EditorUtility.SetDirty(currentGraph);
+            })
+            { text = "+ Add Quest Requirement" });
+
+            extensionContainer.Add(foldout);
+        }
+
+        private void AddQuestRequirementRow(VisualElement container, NodeQuestRequirement req)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+
+            // Quest dropdown
+            var questDropdown = BuildDynamicDropdown(
+                label: string.Empty,
+                getChoices: () => currentGraph.quests.Select(q => q.title).ToList(),
+                emptyLabel: "No quests",
+                getCurrentValue: () =>
+                {
+                    var q = currentGraph.quests.FirstOrDefault(q => q.guid == req.questGuid);
+                    return q?.title ?? "No quests";
+                },
+                onValueChanged: name =>
+                {
+                    var q = currentGraph.quests.FirstOrDefault(q => q.title == name);
+                    if (q != null) { req.questGuid = q.guid; EditorUtility.SetDirty(currentGraph); }
+                }
+            );
+            questDropdown.style.flexGrow = 1;
+
+            // Status dropdown
+            var statusNames = System.Enum.GetNames(typeof(QuestStatus)).ToList();
+            var currentStatus = req.requiredStatus.ToString();
+            var statusDropdown = new PopupField<string>(statusNames, currentStatus);
+            statusDropdown.style.width = 100;
+            statusDropdown.RegisterValueChangedCallback(evt =>
+            {
+                if (System.Enum.TryParse<QuestStatus>(evt.newValue, out var s))
+                {
+                    req.requiredStatus = s;
+                    EditorUtility.SetDirty(currentGraph);
+                }
+            });
+
+            var removeBtn = new Button(() =>
+            {
+                Data.questRequirements.Remove(req);
+                container.Remove(row);
+                EditorUtility.SetDirty(currentGraph);
+            })
+            { text = "✕" };
+
+            row.Add(questDropdown);
+            row.Add(statusDropdown);
+            row.Add(removeBtn);
             container.Add(row);
         }
 

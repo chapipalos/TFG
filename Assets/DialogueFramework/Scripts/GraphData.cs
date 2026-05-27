@@ -36,24 +36,23 @@ namespace DialogueFramework
         public string title;
         public string dialogue;
         public Vector2 position;
-
         public string actorGuid;
         public string questGuid;
 
         public List<NodeConditionData> conditions = new();
         public List<NodeQuestActionData> questActions = new();
-
-        // NEW: player reply options — each gets its own output port in the editor
         public List<PlayerReplyData> replies = new();
+
+        // Requisitos de estado de quest para que este nodo sea válido.
+        // Si la lista está vacía el nodo no tiene requisito de quest.
+        // Si tiene entradas, TODAS deben cumplirse (AND).
+        public List<NodeQuestRequirement> questRequirements = new();
     }
 
     [Serializable]
     public class PlayerReplyData
     {
-        /// <summary>Stable identifier used to match ports across save/load.</summary>
         public string guid;
-
-        /// <summary>Text shown to the player as a dialogue choice.</summary>
         public string text;
     }
 
@@ -64,14 +63,22 @@ namespace DialogueFramework
         public bool requiredValue;
     }
 
+    /// <summary>
+    /// Requisito de estado de quest para un nodo.
+    /// El nodo solo es válido si la quest indicada está en el estado indicado.
+    /// </summary>
+    [Serializable]
+    public class NodeQuestRequirement
+    {
+        public string questGuid;
+        public QuestStatus requiredStatus;
+    }
+
     [Serializable]
     public class NodeLinkData
     {
         public string outputNodeGuid;
         public string inputNodeGuid;
-
-        // NEW: GUID of the PlayerReplyData whose port generated this link.
-        // Empty string means the link comes from the generic OutputPort (no replies).
         public string outputPortGuid;
     }
 

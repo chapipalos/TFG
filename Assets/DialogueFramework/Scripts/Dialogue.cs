@@ -8,8 +8,13 @@ namespace DialogueFramework
 {
     public class Dialogue : MonoBehaviour
     {
+        public bool startDialogue = false;
+
         [Header("Graph")]
         public GraphData graphData;
+
+        [Header("UI - canvas")]
+        private Canvas dialogueCanvas;
 
         [Header("UI — dialogue")]
         public TextMeshProUGUI m_ActorText;
@@ -21,11 +26,10 @@ namespace DialogueFramework
         public Button m_ReplyButtonPrefab;
 
         [Header("Typewriter")]
-        [Tooltip("Segundos entre cada carácter. 0.04 = ~25 chars/seg, 0.02 = ~50 chars/seg.")]
         [Range(0.01f, 0.2f)]
         public float charDelay = 0.04f;
 
-        // ── Runtime state ─────────────────────────────────────────────────────
+        // ── Runtime ───────────────────────────────────────────────────────────
 
         private Dictionary<string, DialogueNode> nodesByGuid = new();
         private Dictionary<string, List<NodeLinkData>> outgoingLinks = new();
@@ -35,42 +39,59 @@ namespace DialogueFramework
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
-        void Start()
+        private void Start()
         {
-            if (graphData == null) { Debug.LogError("GraphData not assigned."); return; }
+            dialogueCanvas = GetComponent<Canvas>();
+            if (dialogueCanvas == null)
+            {
+                Debug.LogError("[Dialogue] No se encontró un Canvas en este GameObject.");
+                return;
+            }
 
+            // FIX 1: registrar el listener UNA sola vez aquí.
+            // Antes se llamaba dentro de StartDialogue(), acumulando un listener
+            // extra en cada conversación → OnNextPressed se ejecutaba N veces.
+            m_NextDialogueButton.onClick.RemoveAllListeners();
+            m_NextDialogueButton.onClick.AddListener(OnNextPressed);
+
+            dialogueCanvas.gameObject.SetActive(false);
+        }
+
+        // ── Public entry point ────────────────────────────────────────────────
+
+        public void StartDialogue()
+        {
+            if (graphData == null) { Debug.LogError("[Dialogue] GraphData not assigned."); return; }
+
+            // Reconstruir siempre para reflejar cambios en condiciones / quests
             BuildNodes();
             BuildLinks();
 
             string startGuid = FindStartNodeGuid();
-
             if (!string.IsNullOrEmpty(startGuid) && nodesByGuid.TryGetValue(startGuid, out var startNode))
                 ShowNode(startNode);
             else
-                Debug.LogWarning("No start node found.");
+                Debug.LogWarning("[Dialogue] No start node found.");
 
-            m_NextDialogueButton.onClick.AddListener(OnNextPressed);
+            dialogueCanvas.gameObject.SetActive(true);
+            startDialogue = true;
         }
+
+        // ── Update ────────────────────────────────────────────────────────────
 
         void Update()
         {
-            if (currentNode == null)
-            {
-                m_DialogueText.text = "";
-                return;
-            }
+            if (!startDialogue) return;
+            if (currentNode == null) { m_DialogueText.text = ""; return; }
 
             bool wasRunning = currentNode.getRunning();
             currentNode.UpdateDialogue(charDelay);
             m_DialogueText.text = currentNode.stringBuilder.ToString();
 
-            // Detectar el momento exacto en que el typewriter termina solo
-            // (sin que el usuario haya pulsado saltar).
+            // Typewriter terminó solo → mostrar replies si las hay
             if (wasRunning && !currentNode.getRunning())
             {
-                bool hasReplies = currentNode.node.replies != null &&
-                                  currentNode.node.replies.Count > 0;
-                if (hasReplies)
+                if (HasVisibleReplies(currentNode.node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
                     m_RepliesPanel.gameObject.SetActive(true);
@@ -83,8 +104,8 @@ namespace DialogueFramework
         private void BuildNodes()
         {
             nodesByGuid.Clear();
-            foreach (var nodeData in graphData.nodes)
-                nodesByGuid[nodeData.guid] = new DialogueNode { node = nodeData };
+            foreach (var data in graphData.nodes)
+                nodesByGuid[data.guid] = new DialogueNode { node = data };
         }
 
         private void BuildLinks()
@@ -100,14 +121,10 @@ namespace DialogueFramework
 
         private string FindStartNodeGuid()
         {
-            var nodesWithIncoming = new HashSet<string>();
-            foreach (var link in graphData.links)
-                nodesWithIncoming.Add(link.inputNodeGuid);
-
+            var hasIncoming = new HashSet<string>();
+            foreach (var link in graphData.links) hasIncoming.Add(link.inputNodeGuid);
             foreach (var node in graphData.nodes)
-                if (!nodesWithIncoming.Contains(node.guid))
-                    return node.guid;
-
+                if (!hasIncoming.Contains(node.guid)) return node.guid;
             return graphData.nodes.Count > 0 ? graphData.nodes[0].guid : null;
         }
 
@@ -116,29 +133,74 @@ namespace DialogueFramework
         private void ShowNode(DialogueNode dialogueNode)
         {
             currentNode = dialogueNode;
+
+            ExecuteQuestActions(currentNode.node);
             currentNode.StartDialogue();
 
             if (m_ActorText != null)
             {
                 var actor = graphData.actors.Find(a => a.guid == currentNode.node.actorGuid);
-                m_ActorText.text = actor != null ? actor.name : "";
+                m_ActorText.text = actor?.name ?? "";
             }
 
-            // Durante el typewriter el botón Next siempre está visible para saltar.
-            // El panel de replies se muestra solo cuando termina de escribir.
             m_NextDialogueButton.gameObject.SetActive(true);
             m_RepliesPanel.gameObject.SetActive(false);
 
             ClearReplyButtons();
 
-            // Pre-instanciar replies ya (panel oculto) para que al terminar
-            // el typewriter solo haya que activar el panel.
-            bool hasReplies = currentNode.node.replies != null &&
-                              currentNode.node.replies.Count > 0;
-
-            if (hasReplies)
+            if (HasVisibleReplies(currentNode.node))
                 SpawnReplyButtons(currentNode.node);
         }
+
+        // ── Quest actions ─────────────────────────────────────────────────────
+
+        private void ExecuteQuestActions(NodeData node)
+        {
+            if (node.questActions == null || node.questActions.Count == 0) return;
+
+            var qm = QuestManager.Instance;
+            if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); return; }
+
+            foreach (var action in node.questActions)
+            {
+                if (string.IsNullOrEmpty(action.questGuid)) continue;
+                switch (action.action)
+                {
+                    case QuestActionType.Start: qm.StartQuest(action.questGuid); break;
+                    case QuestActionType.Complete: qm.CompleteQuest(action.questGuid); break;
+                    case QuestActionType.Fail: qm.FailQuest(action.questGuid); break;
+                }
+            }
+        }
+
+        // ── Conditions ────────────────────────────────────────────────────────
+
+        private bool NodeConditionsMet(NodeData node)
+        {
+            // 1. Condiciones booleanas (items, zonas, etc.)
+            var cm = ConditionManager.Instance;
+            if (cm != null && !cm.EvaluateAll(node.conditions))
+                return false;
+
+            // 2. Requisitos de estado de quest
+            if (node.questRequirements != null && node.questRequirements.Count > 0)
+            {
+                var qm = QuestManager.Instance;
+                if (qm == null) return false;
+
+                foreach (var req in node.questRequirements)
+                {
+                    if (string.IsNullOrEmpty(req.questGuid)) continue;
+                    if (qm.GetStatus(req.questGuid) != req.requiredStatus)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool HasVisibleReplies(NodeData node)
+            => node.replies != null && node.replies.Count > 0;
 
         // ── Reply buttons ─────────────────────────────────────────────────────
 
@@ -146,11 +208,11 @@ namespace DialogueFramework
         {
             foreach (var reply in node.replies)
             {
-                var capturedReply = reply;
+                var captured = reply;
                 var btn = Instantiate(m_ReplyButtonPrefab, m_RepliesPanel);
                 var tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
                 if (tmp != null) tmp.text = reply.text;
-                btn.onClick.AddListener(() => OnReplyPressed(capturedReply.guid));
+                btn.onClick.AddListener(() => OnReplyPressed(captured.guid));
                 spawnedReplyButtons.Add(btn);
             }
         }
@@ -168,14 +230,10 @@ namespace DialogueFramework
         {
             if (currentNode == null) return;
 
-            // Si el texto aún se está escribiendo, saltar al final.
             if (currentNode.getRunning())
             {
                 currentNode.SkipToEnd();
-                // Si hay replies, mostrarlas ahora que el texto es visible.
-                bool hasReplies = currentNode.node.replies != null &&
-                                  currentNode.node.replies.Count > 0;
-                if (hasReplies)
+                if (HasVisibleReplies(currentNode.node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
                     m_RepliesPanel.gameObject.SetActive(true);
@@ -183,7 +241,6 @@ namespace DialogueFramework
                 return;
             }
 
-            // Texto ya completo y no hay replies → avanzar normalmente.
             AdvanceViaPort("");
         }
 
@@ -210,26 +267,39 @@ namespace DialogueFramework
                 return;
             }
 
-            NodeLinkData matchedLink = null;
+            NodeLinkData matched = null;
             foreach (var link in links)
             {
-                bool portMatches = string.IsNullOrEmpty(outputPortGuid)
+                bool portMatch = string.IsNullOrEmpty(outputPortGuid)
                     ? string.IsNullOrEmpty(link.outputPortGuid)
                     : link.outputPortGuid == outputPortGuid;
 
-                if (portMatches) { matchedLink = link; break; }
+                if (!portMatch) continue;
+
+                if (!nodesByGuid.TryGetValue(link.inputNodeGuid, out var candidate)) continue;
+
+                // FIX 2: evaluar condiciones en runtime, no en tiempo de construcción.
+                // Antes BuildNodes() se llamaba una vez y los nodos no se reevaluaban.
+                // Ahora se comprueba en cada avance con el estado actual del ConditionManager.
+                if (!NodeConditionsMet(candidate.node)) continue;
+
+                matched = link;
+                break;
             }
 
-            if (matchedLink == null)
+            if (matched == null)
             {
-                Debug.LogWarning($"No link found for port '{outputPortGuid}' on node '{currentGuid}'.");
+                // FIX 3: si ningún link pasa las condiciones, loguear cuáles fallaron
+                // para facilitar el debug en lugar de silenciosamente cerrar el diálogo.
+                Debug.LogWarning($"[Dialogue] Ningún link válido desde '{currentNode.node.title}'. " +
+                                 $"Comprueba que las condiciones del nodo destino se cumplen.");
                 EndDialogue();
                 return;
             }
 
-            if (!nodesByGuid.TryGetValue(matchedLink.inputNodeGuid, out var nextNode))
+            if (!nodesByGuid.TryGetValue(matched.inputNodeGuid, out var nextNode))
             {
-                Debug.LogWarning($"Target node not found: {matchedLink.inputNodeGuid}");
+                Debug.LogWarning($"[Dialogue] Nodo destino no encontrado: {matched.inputNodeGuid}");
                 EndDialogue();
                 return;
             }
@@ -239,15 +309,19 @@ namespace DialogueFramework
 
         private void EndDialogue()
         {
-            Debug.Log("Dialogue ended.");
+            Debug.Log("[Dialogue] Fin del diálogo.");
             ClearReplyButtons();
+            // FIX 1b: NO llamar RemoveAllListeners() aquí — el listener de Start
+            // debe sobrevivir entre conversaciones.
             m_NextDialogueButton.gameObject.SetActive(false);
             m_RepliesPanel.gameObject.SetActive(false);
             currentNode = null;
+            startDialogue = false;
+            dialogueCanvas.gameObject.SetActive(false);
         }
     }
 
-    // ── DialogueNode ─────────────────────────────────────────────────────────
+    // ── DialogueNode ──────────────────────────────────────────────────────────
 
     [System.Serializable]
     public class DialogueNode
@@ -257,7 +331,7 @@ namespace DialogueFramework
 
         private bool nodeRunning = false;
         private int textCharIndex = 0;
-        private float timer = 0f;   // acumula tiempo entre caracteres
+        private float timer = 0f;
 
         public bool getRunning() => nodeRunning;
         public void setRunning(bool v) => nodeRunning = v;
@@ -270,17 +344,11 @@ namespace DialogueFramework
             nodeRunning = true;
         }
 
-        /// <param name="charDelay">Segundos entre cada carácter.</param>
         public void UpdateDialogue(float charDelay)
         {
-            if (!nodeRunning || string.IsNullOrEmpty(node.dialogue))
-                return;
+            if (!nodeRunning || string.IsNullOrEmpty(node.dialogue)) return;
 
             timer += Time.deltaTime;
-
-            // Añade todos los caracteres que correspondan al tiempo acumulado.
-            // Si el juego va a 30fps y charDelay es 0.04s, puede tocar añadir
-            // 0 o 1 carácter por frame según el acumulado — nunca se pierde tiempo.
             while (timer >= charDelay && textCharIndex < node.dialogue.Length)
             {
                 stringBuilder.Append(node.dialogue[textCharIndex]);

@@ -1,0 +1,210 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33d958b7c8321ca448d87341ae7574ff, type: 3}
+  m_Name: ExampleDialogue
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.GraphData
+  actors:
+  - guid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    name: Aldric el Herrero
+  conditions:
+  - guid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
+    name: TieneHierro
+    value: 0
+  quests:
+  - guid: c266e66f-6f32-4d2f-9235-80c91248acdd
+    title: La Espada del Alba
+    description: "Consigue hierro de las minas del norte y entr\xE9gaselo a Aldric."
+    objectives:
+    - guid: dc992098-4d66-4367-a4fd-643476e80f6f
+      description: Conseguir hierro
+      requiredCompletedState: 1
+    - guid: c39d7907-a9ad-45e8-9680-77f642ffd9d6
+      description: Entregar el hierro
+      requiredCompletedState: 1
+  nodes:
+  - guid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
+    title: Intro
+    dialogue: "\xA1Bienvenido a mi forja, viajero! \xBFQu\xE9 puedo hacer por ti?"
+    position: {x: -95.2, y: 274.40002}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: a034404f-d82c-4ebf-bce2-bc12c9d1ee30
+    title: Oferta de quest
+    dialogue: "Llevo semanas buscando a alguien con agallas. Necesito hierro de las
+      Minas del Norte. \xBFTe interesa?"
+    position: {x: 332.8, y: -57.6}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies:
+    - guid: 2471ea15-ec09-4eb2-9ae2-0a9cc0fcb00f
+      text: "Acepto. \xBFQu\xE9 tengo que hacer?"
+    - guid: eaa33749-3844-490c-ad35-fc8024a0fc7f
+      text: No es un buen momento.
+    questRequirements:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      requiredStatus: 0
+  - guid: 60a38769-00a5-4f6e-8f46-2cb83037f064
+    title: Quest aceptada
+    dialogue: "Excelente. Las minas est\xE1n al norte. Cuando tengas el hierro, vuelve
+      aqu\xED."
+    position: {x: 660, y: -307.2}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+    conditions: []
+    questActions:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      action: 0
+    replies: []
+    questRequirements: []
+  - guid: 14717d5c-6c40-40e5-b603-c5f9cdd5cba7
+    title: Quest rechazada
+    dialogue: "Lo entiendo. Si cambias de opini\xF3n, ya sabes d\xF3nde encontrarme."
+    position: {x: 660, y: 56.800003}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: ef6271ec-d4a2-4b9e-bf29-3b2d24b54e0b
+    title: Sin hierro (activa)
+    dialogue: "\xBFYa de vuelta? No veo el hierro. Las minas no son una excursi\xF3n
+      de domingo."
+    position: {x: 332.8, y: 340.8}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions:
+    - conditionGuid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
+      requiredValue: 0
+    questActions: []
+    replies: []
+    questRequirements:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      requiredStatus: 1
+  - guid: e5f2ce79-3383-4016-b906-ef2aea6cd966
+    title: "Fin: Acept\xF3"
+    dialogue: Aldric te entrega un mapa con las minas.
+    position: {x: 1026.4, y: -552.8}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: 7c9a0233-eeee-4279-997c-31453c3619af
+    title: "Fin: Rechaz\xF3"
+    dialogue: Aldric suspira y vuelve al trabajo.
+    position: {x: 1116, y: 56.800003}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: c7912ba3-73b0-40bf-ac48-a8aa4c42445f
+    title: 'Fin: Sin hierro'
+    dialogue: "Aldric te se\xF1ala la puerta."
+    position: {x: 660, y: 340.8}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: 81243894-45ab-4a4f-95ef-deb82da892b7
+    title: Con hierro
+    dialogue: "\xA1Lo conseguiste! Hierro de primera calidad. Aqu\xED tienes tu recompensa."
+    position: {x: 332.8, y: 712}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+    conditions:
+    - conditionGuid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
+      requiredValue: 1
+    questActions:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      action: 1
+    replies: []
+    questRequirements:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      requiredStatus: 1
+  - guid: b0bb232e-c481-46a0-a5c8-302f831574e9
+    title: "Fin: Entreg\xF3"
+    dialogue: El martillo retumba en la forja.
+    position: {x: 660, y: 712}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
+    title: Post-quest
+    dialogue: "La Espada del Alba ya est\xE1 lista. Fue un honor trabajar contigo."
+    position: {x: 1003.2, y: 712}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      requiredStatus: 3
+  - guid: db1bf079-0c81-4333-92c0-22377aaa3fbe
+    title: 'Fin: Post-quest'
+    dialogue: Aldric te hace una reverencia.
+    position: {x: 1348, y: 712}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  links:
+  - outputNodeGuid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
+    inputNodeGuid: 81243894-45ab-4a4f-95ef-deb82da892b7
+    outputPortGuid: 
+  - outputNodeGuid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
+    inputNodeGuid: ef6271ec-d4a2-4b9e-bf29-3b2d24b54e0b
+    outputPortGuid: 
+  - outputNodeGuid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
+    inputNodeGuid: a034404f-d82c-4ebf-bce2-bc12c9d1ee30
+    outputPortGuid: 
+  - outputNodeGuid: a034404f-d82c-4ebf-bce2-bc12c9d1ee30
+    inputNodeGuid: 60a38769-00a5-4f6e-8f46-2cb83037f064
+    outputPortGuid: 2471ea15-ec09-4eb2-9ae2-0a9cc0fcb00f
+  - outputNodeGuid: a034404f-d82c-4ebf-bce2-bc12c9d1ee30
+    inputNodeGuid: 14717d5c-6c40-40e5-b603-c5f9cdd5cba7
+    outputPortGuid: eaa33749-3844-490c-ad35-fc8024a0fc7f
+  - outputNodeGuid: 60a38769-00a5-4f6e-8f46-2cb83037f064
+    inputNodeGuid: e5f2ce79-3383-4016-b906-ef2aea6cd966
+    outputPortGuid: 
+  - outputNodeGuid: 14717d5c-6c40-40e5-b603-c5f9cdd5cba7
+    inputNodeGuid: 7c9a0233-eeee-4279-997c-31453c3619af
+    outputPortGuid: 
+  - outputNodeGuid: ef6271ec-d4a2-4b9e-bf29-3b2d24b54e0b
+    inputNodeGuid: c7912ba3-73b0-40bf-ac48-a8aa4c42445f
+    outputPortGuid: 
+  - outputNodeGuid: 81243894-45ab-4a4f-95ef-deb82da892b7
+    inputNodeGuid: b0bb232e-c481-46a0-a5c8-302f831574e9
+    outputPortGuid: 
+  - outputNodeGuid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
+    inputNodeGuid: db1bf079-0c81-4333-92c0-22377aaa3fbe
+    outputPortGuid: 
+  - outputNodeGuid: b0bb232e-c481-46a0-a5c8-302f831574e9
+    inputNodeGuid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
+    outputPortGuid: 
