@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -42,10 +42,8 @@ namespace DialogueFramework
         public List<NodeConditionData> conditions = new();
         public List<NodeQuestActionData> questActions = new();
         public List<PlayerReplyData> replies = new();
+        public List<NodeEffectData> effects = new();
 
-        // Requisitos de estado de quest para que este nodo sea v·lido.
-        // Si la lista est· vacÌa el nodo no tiene requisito de quest.
-        // Si tiene entradas, TODAS deben cumplirse (AND).
         public List<NodeQuestRequirement> questRequirements = new();
     }
 
@@ -65,7 +63,7 @@ namespace DialogueFramework
 
     /// <summary>
     /// Requisito de estado de quest para un nodo.
-    /// El nodo solo es v·lido si la quest indicada est· en el estado indicado.
+    /// El nodo solo es v√°lido si la quest indicada est√° en el estado indicado.
     /// </summary>
     [Serializable]
     public class NodeQuestRequirement
@@ -111,5 +109,26 @@ namespace DialogueFramework
         Start,
         Complete,
         Fail
+    }
+
+    [Serializable]
+    public class NodeEffectData
+    {
+        public NodeEffectType type;
+        public string questGuid;
+        public string conditionGuid;
+        public string objectiveGuid;   // ‚Üê NUEVO, usado solo si type es ObjectiveComplete
+    }
+
+    public enum NodeEffectType
+    {
+        QuestStart,
+        QuestComplete,
+        QuestFail,
+        ObjectiveComplete,    // ‚Üê NUEVO
+
+        ConditionSetTrue,
+        ConditionSetFalse,
+        ConditionToggle
     }
 }

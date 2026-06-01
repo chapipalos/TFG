@@ -85,6 +85,12 @@ namespace DialogueFramework
                 if (GetValue(c.conditionGuid) != c.requiredValue) return false;
             return true;
         }
+
+        public void ToggleValue(string conditionGuid)
+        {
+            bool current = GetValue(conditionGuid);
+            SetValue(conditionGuid, !current);
+        }
     }
 
     [System.Serializable]

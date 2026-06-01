@@ -31,15 +31,29 @@ namespace DialogueFramework.Editor
             }
 
             // Construir lista de condiciones del grafo para el dropdown
-            var conditions = cm.graphData.conditions;
-            var names = new List<string> { "— selecciona —" };
+            List<QuestObjectiveData> objectives = new List<QuestObjectiveData>();
+            foreach (var quest in cm.graphData.quests)
+            {
+                foreach (var obj in quest.objectives)
+                {
+                    objectives.Add(obj);
+                }
+            }
+            var names = new List<string> { "— select —" };
             var guids = new List<string> { "" };
 
-            foreach (var c in conditions)
+            foreach (var o in objectives)
             {
-                names.Add(c.name);
-                guids.Add(c.guid);
+                names.Add(o.description);
+                guids.Add(o.guid);
             }
+
+            //var conditions = cm.graphData.conditions;
+            //foreach (var c in conditions)
+            //{
+            //    names.Add(c.name);
+            //    guids.Add(c.guid);
+            //}
 
             // Dibujar cada binding
             for (int i = 0; i < cm.bindings.Count; i++)

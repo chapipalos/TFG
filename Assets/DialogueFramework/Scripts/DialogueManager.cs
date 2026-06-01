@@ -27,6 +27,7 @@ namespace DialogueFramework
         public string m_NextButtonTextSkip = "Skip";
         public string m_NextButtonTextContinue = "Continue";
         public Transform m_RepliesPanel;
+        private Image m_RepliesPanelImage;
         private RectTransform repliesPanelRect;
         public Button m_ReplyButtonPrefab;
 
@@ -57,6 +58,7 @@ namespace DialogueFramework
         private void Start()
         {
             repliesPanelRect = m_RepliesPanel.GetComponent<RectTransform>();
+            m_RepliesPanelImage = m_RepliesPanel.TryGetComponent<Image>(out var img) ? img : null;
             dialoguePanelRect = m_DialoguePanel.GetComponent<RectTransform>();
             m_NextDialogueButtonText = m_NextDialogueButton.GetComponentInChildren<TextMeshProUGUI>();
 
@@ -155,7 +157,7 @@ namespace DialogueFramework
         {
             currentNode = dialogueNode;
 
-            ExecuteQuestActions(currentNode.node);
+            ExecuteNodeEffects(currentNode.node);
             currentNode.StartDialogue();
 
             // Reiniciar la barra a 0 visualmente al empezar un nodo nuevo
@@ -172,7 +174,13 @@ namespace DialogueFramework
             ClearReplyButtons();
 
             if (HasVisibleReplies(currentNode.node))
+            {
                 SpawnReplyButtons(currentNode.node);
+            }
+            else if(m_RepliesPanelImage != null)
+            {
+                m_RepliesPanelImage.enabled = false;
+            }
 
             m_NextDialogueButton.gameObject.SetActive(true);
             m_NextDialogueButtonText.text = m_NextButtonTextSkip;
@@ -180,20 +188,63 @@ namespace DialogueFramework
 
         // ── Quest actions ─────────────────────────────────────────────────────
 
-        private void ExecuteQuestActions(NodeData node)
-        {
-            if (node.questActions == null || node.questActions.Count == 0) return;
-            var qm = QuestManager.Instance;
-            if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); return; }
+        // ── Node effects ─────────────────────────────────────────────────────
 
-            foreach (var action in node.questActions)
+        private void ExecuteNodeEffects(NodeData node)
+        {
+            if (node.effects == null || node.effects.Count == 0) return;
+
+            var qm = QuestManager.Instance;
+            var cm = ConditionManager.Instance;
+
+            foreach (var effect in node.effects)
             {
-                if (string.IsNullOrEmpty(action.questGuid)) continue;
-                switch (action.action)
+                switch (effect.type)
                 {
-                    case QuestActionType.Start: qm.StartQuest(action.questGuid); break;
-                    case QuestActionType.Complete: qm.CompleteQuest(action.questGuid); break;
-                    case QuestActionType.Fail: qm.FailQuest(action.questGuid); break;
+                    // ── Quest effects ────────────────────────────────────────
+                    case NodeEffectType.QuestStart:
+                        if (string.IsNullOrEmpty(effect.questGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
+                        qm.StartQuest(effect.questGuid);
+                        break;
+
+                    case NodeEffectType.QuestComplete:
+                        if (string.IsNullOrEmpty(effect.questGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
+                        qm.CompleteQuest(effect.questGuid);
+                        break;
+
+                    case NodeEffectType.QuestFail:
+                        if (string.IsNullOrEmpty(effect.questGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
+                        qm.FailQuest(effect.questGuid);
+                        break;
+
+                    case NodeEffectType.ObjectiveComplete:
+                        if (string.IsNullOrEmpty(effect.questGuid)) break;
+                        if (string.IsNullOrEmpty(effect.objectiveGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
+                        qm.SetObjectiveCompleted(effect.questGuid, effect.objectiveGuid, true);
+                        break;
+
+                    // ── Condition effects ────────────────────────────────────
+                    case NodeEffectType.ConditionSetTrue:
+                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
+                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
+                        cm.SetValue(effect.conditionGuid, true);
+                        break;
+
+                    case NodeEffectType.ConditionSetFalse:
+                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
+                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
+                        cm.SetValue(effect.conditionGuid, false);
+                        break;
+
+                    case NodeEffectType.ConditionToggle:
+                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
+                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
+                        cm.ToggleValue(effect.conditionGuid);
+                        break;
                 }
             }
         }
@@ -244,6 +295,8 @@ namespace DialogueFramework
 
         private void ShowReplyButtons()
         {
+            if (m_RepliesPanelImage != null)
+                m_RepliesPanelImage.enabled = true;
             foreach (var btn in spawnedReplyButtons)
                 if (btn != null) btn.gameObject.SetActive(true);
 

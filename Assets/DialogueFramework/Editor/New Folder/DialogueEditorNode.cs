@@ -36,7 +36,7 @@ namespace DialogueFramework.Editor
             inputContainer.Add(InputPort);
 
             // ── Generic output port (hidden when replies exist) ────────────────
-            OutputPort = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Single, typeof(float));
+            OutputPort = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(float));
             OutputPort.portName = "Out";
             outputContainer.Add(OutputPort);
 
@@ -62,10 +62,11 @@ namespace DialogueFramework.Editor
             extensionContainer.Add(dialogueField);
 
             BuildActorDropdown();
-            BuildConditionsFoldout();
+            //BuildConditionsFoldout();
+            BuildObjectiveConditionFoldout();
             BuildQuestRequirementsFoldout();
-            BuildQuestDropdown();
             BuildRepliesFoldout();
+            BuildEffectsFoldout();
 
             RefreshExpandedState();
             RefreshPorts();
@@ -174,6 +175,204 @@ namespace DialogueFramework.Editor
             RefreshExpandedState();
         }
 
+        // ── Node effects foldout ─────────────────────────────────────────────
+
+        private void BuildEffectsFoldout()
+        {
+            if (Data.effects == null)
+                Data.effects = new List<NodeEffectData>();
+
+            var foldout = new Foldout { text = "Node Effects", value = false };
+            var container = new VisualElement();
+            foldout.Add(container);
+
+            foreach (var effect in Data.effects)
+                AddEffectRow(container, effect);
+
+            foldout.Add(new Button(() =>
+            {
+                var effect = new NodeEffectData { type = NodeEffectType.QuestStart };
+
+                // FIX: asignar el primer GUID disponible al crear el efecto,
+                // no esperar a que el usuario interactúe con el dropdown.
+                AutoAssignTargetGuid(effect);
+
+                Data.effects.Add(effect);
+                AddEffectRow(container, effect);
+                EditorUtility.SetDirty(currentGraph);
+            })
+            { text = "+ Add Effect" });
+
+            extensionContainer.Add(foldout);
+        }
+
+        private void AddEffectRow(VisualElement container, NodeEffectData effect)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Column;
+            row.style.marginBottom = 4;
+
+            var typeNames = System.Enum.GetNames(typeof(NodeEffectType)).ToList();
+            var typeDropdown = new PopupField<string>("Type", typeNames, effect.type.ToString());
+
+            var targetRow = new VisualElement();
+            targetRow.style.flexDirection = FlexDirection.Column;
+            System.Action rebuildTargetDropdown = null;
+            rebuildTargetDropdown = () =>
+            {
+                targetRow.Clear();
+
+                bool isQuest = effect.type == NodeEffectType.QuestStart
+                            || effect.type == NodeEffectType.QuestComplete
+                            || effect.type == NodeEffectType.QuestFail;
+
+                bool isObjective = effect.type == NodeEffectType.ObjectiveComplete;
+
+                if (isQuest || isObjective)
+                {
+                    // Dropdown de quest (común para quest effects y objective effects)
+                    var questDropdown = BuildDynamicDropdown(
+                        label: "Quest",
+                        getChoices: () => currentGraph.quests.Select(q => q.title).ToList(),
+                        emptyLabel: "No quests",
+                        getCurrentValue: () =>
+                        {
+                            var q = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
+                            return q?.title ?? (currentGraph.quests.Count > 0 ? currentGraph.quests[0].title : "No quests");
+                        },
+                        onValueChanged: name =>
+                        {
+                            var q = currentGraph.quests.FirstOrDefault(q => q.title == name);
+                            if (q != null)
+                            {
+                                effect.questGuid = q.guid;
+                                // Al cambiar de quest, resetear el objetivo seleccionado
+                                if (isObjective)
+                                    effect.objectiveGuid = q.objectives.Count > 0 ? q.objectives[0].guid : "";
+                                EditorUtility.SetDirty(currentGraph);
+                                rebuildTargetDropdown();
+                            }
+                        }
+                    );
+                    questDropdown.style.flexGrow = 1;
+                    targetRow.Add(questDropdown);
+
+                    // Segundo dropdown — objetivos de la quest seleccionada
+                    if (isObjective)
+                    {
+                        var quest = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
+                        if (quest != null && quest.objectives.Count > 0)
+                        {
+                            var objectiveDropdown = BuildDynamicDropdown(
+                                label: "Objective",
+                                getChoices: () => quest.objectives.Select(o => o.description).ToList(),
+                                emptyLabel: "No objectives",
+                                getCurrentValue: () =>
+                                {
+                                    var o = quest.objectives.FirstOrDefault(o => o.guid == effect.objectiveGuid);
+                                    return o?.description ?? quest.objectives[0].description;
+                                },
+                                onValueChanged: name =>
+                                {
+                                    var o = quest.objectives.FirstOrDefault(o => o.description == name);
+                                    if (o != null)
+                                    {
+                                        effect.objectiveGuid = o.guid;
+                                        EditorUtility.SetDirty(currentGraph);
+                                    }
+                                }
+                            );
+                            objectiveDropdown.style.flexGrow = 1;
+                            targetRow.Add(objectiveDropdown);
+                        }
+                    }
+                }
+                else
+                {
+                    // Dropdown de condiciones
+                    var conditionDropdown = BuildDynamicDropdown(
+                        label: "Condition",
+                        getChoices: () => currentGraph.conditions.Select(c => c.name).ToList(),
+                        emptyLabel: "No conditions",
+                        getCurrentValue: () =>
+                        {
+                            var c = currentGraph.conditions.FirstOrDefault(c => c.guid == effect.conditionGuid);
+                            return c?.name ?? (currentGraph.conditions.Count > 0 ? currentGraph.conditions[0].name : "No conditions");
+                        },
+                        onValueChanged: name =>
+                        {
+                            var c = currentGraph.conditions.FirstOrDefault(c => c.name == name);
+                            if (c != null)
+                            {
+                                effect.conditionGuid = c.guid;
+                                EditorUtility.SetDirty(currentGraph);
+                            }
+                        }
+                    );
+                    conditionDropdown.style.flexGrow = 1;
+                    targetRow.Add(conditionDropdown);
+                }
+            };
+
+            typeDropdown.RegisterValueChangedCallback(evt =>
+            {
+                if (System.Enum.TryParse<NodeEffectType>(evt.newValue, out var t))
+                {
+                    effect.type = t;
+                    AutoAssignTargetGuid(effect);
+                    EditorUtility.SetDirty(currentGraph);
+                    rebuildTargetDropdown();
+                }
+            });
+
+            var removeBtn = new Button(() =>
+            {
+                Data.effects.Remove(effect);
+                container.Remove(row);
+                EditorUtility.SetDirty(currentGraph);
+            })
+            { text = "✕ Remove effect" };
+
+            row.Add(typeDropdown);
+            row.Add(targetRow);
+            row.Add(removeBtn);
+            container.Add(row);
+
+            rebuildTargetDropdown();
+        }
+
+        /// <summary>
+        /// Asigna el primer target disponible al efecto según su tipo,
+        /// si el GUID correspondiente está vacío. Evita que un efecto
+        /// recién creado se guarde con GUID en blanco.
+        /// </summary>
+        private void AutoAssignTargetGuid(NodeEffectData effect)
+        {
+            bool isQuest = effect.type == NodeEffectType.QuestStart
+                        || effect.type == NodeEffectType.QuestComplete
+                        || effect.type == NodeEffectType.QuestFail;
+
+            bool isObjective = effect.type == NodeEffectType.ObjectiveComplete;
+
+            if (isQuest || isObjective)
+            {
+                if (string.IsNullOrEmpty(effect.questGuid) && currentGraph.quests.Count > 0)
+                    effect.questGuid = currentGraph.quests[0].guid;
+
+                if (isObjective && string.IsNullOrEmpty(effect.objectiveGuid))
+                {
+                    var q = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
+                    if (q != null && q.objectives.Count > 0)
+                        effect.objectiveGuid = q.objectives[0].guid;
+                }
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(effect.conditionGuid) && currentGraph.conditions.Count > 0)
+                    effect.conditionGuid = currentGraph.conditions[0].guid;
+            }
+        }
+
         /// <summary>
         /// The generic OutputPort is only shown when there are no replies.
         /// When replies exist each reply has its own port, so the generic
@@ -220,47 +419,10 @@ namespace DialogueFramework.Editor
                     {
                         Data.actorGuid = actor.guid;
                         EditorUtility.SetDirty(currentGraph);
-                    }   
+                    }
                 }
             );
             extensionContainer.Add(actorDropdown);
-        }
-
-        // ── Quest dropdown ────────────────────────────────────────────────────
-
-        private void BuildQuestDropdown()
-        {
-            var questDropdown = BuildDynamicDropdown(
-                label: "Quest",
-                getChoices: () =>
-                {
-                    var list = new List<string> { "None" };
-                    list.AddRange(currentGraph.quests.Select(q => q.title));
-                    return list;
-                },
-                emptyLabel: "None",
-                getCurrentValue: () =>
-                {
-                    if (!string.IsNullOrEmpty(Data.questGuid))
-                    {
-                        var quest = currentGraph.quests.FirstOrDefault(q => q.guid == Data.questGuid);
-                        if (quest != null) return quest.title;
-                    }
-                    return "None";
-                },
-                onValueChanged: name =>
-                {
-                    if (name == "None")
-                        Data.questGuid = string.Empty;
-                    else
-                    {
-                        var quest = currentGraph.quests.FirstOrDefault(q => q.title == name);
-                        if (quest != null) Data.questGuid = quest.guid;
-                    }
-                    EditorUtility.SetDirty(currentGraph);
-                }
-            );
-            extensionContainer.Add(questDropdown);
         }
 
         // ── Generic live dropdown ─────────────────────────────────────────────
@@ -323,6 +485,81 @@ namespace DialogueFramework.Editor
             { text = "+ Add Condition" });
 
             extensionContainer.Add(foldout);
+        }
+
+        private void BuildObjectiveConditionFoldout()
+        {
+            var foldout = new Foldout { text = "Objective conditions", value = true };
+            var container = new VisualElement();
+            foldout.Add(container);
+
+            if (Data.conditions == null)
+                Data.conditions = new List<NodeConditionData>();
+
+                foreach (var quest in currentGraph.quests)
+                    foreach (var obj in quest.objectives)
+                        AddObjectiveConditionRow(container, quest, obj);
+
+            foldout.Add(new Button(() =>
+            {
+                if (currentGraph.quests.Count == 0) return;
+                var newObjectiveCondition = new NodeConditionData
+                {
+                    conditionGuid = currentGraph.conditions[0].guid,
+                    requiredValue = false
+                };
+                Data.conditions.Add(newObjectiveCondition);
+                AddConditionRow(container, newObjectiveCondition);
+                EditorUtility.SetDirty(currentGraph);
+            })
+            { text = "+ Add Condition" });
+
+            extensionContainer.Add(foldout);
+        }
+
+        private void AddObjectiveConditionRow(VisualElement container, QuestData data, QuestObjectiveData obj)
+        {
+            // Similar a AddConditionRow pero con dropdown de quests + objectives
+            // en lugar de solo condiciones. Por simplicidad no lo implemento
+            // ahora pero la idea sería que el usuario pueda elegir entre condiciones
+            // normales o condiciones basadas en objetivos de quests.
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+
+            var dropdown = BuildDynamicDropdown(
+                label: string.Empty,
+                getChoices: () => data.objectives.Select(o => o.description).ToList(),
+                emptyLabel: "No objective condition",
+                getCurrentValue: () =>
+                {
+                    var c = data.objectives.FirstOrDefault(o => o.guid == obj.guid);
+                    return c?.description ?? "No objective conditions";
+                },
+                onValueChanged: name =>
+                {
+                    var selected = data.objectives.FirstOrDefault(o => o.description == obj.description);
+                    if (selected != null)
+                    {
+                        obj.guid = selected.guid;
+                        EditorUtility.SetDirty(currentGraph);
+                    }
+                }
+            );
+            dropdown.style.flexGrow = 1;
+
+            var toggle = new Toggle();
+            toggle.value = obj.requiredCompletedState;
+            toggle.RegisterValueChangedCallback(evt =>
+            {
+                obj.requiredCompletedState = evt.newValue;
+                EditorUtility.SetDirty(currentGraph);
+            });
+
+
+            row.Add(dropdown);
+            row.Add(toggle);
+            container.Add(row);
         }
 
         private void AddConditionRow(VisualElement container, NodeConditionData data)

@@ -49,6 +49,7 @@ namespace DialogueFramework
             if (entry.Status == QuestStatus.Active)
             {
                 entry.Status = QuestStatus.InProgress;
+                Debug.Log($"[QuestManager] Quest en progreso: {GetQuestTitle(questGuid)}");
                 NotifyStatusChanged(questGuid, entry.Status);
             }
 
@@ -62,6 +63,24 @@ namespace DialogueFramework
         {
             EnsureEntry(questGuid);
             if (quests[questGuid].Status == QuestStatus.Completed) return;
+
+            // FIX: al completar la quest marcamos todos sus objetivos como completados.
+            // Si el QuestController muestra el panel y el diccionario está vacío,
+            // los toggles salen sin marcar aunque la quest esté Completed.
+            if (graphData != null)
+            {
+                var quest = graphData.quests.Find(q => q.guid == questGuid);
+                if (quest != null)
+                {
+                    var entry = quests[questGuid];
+                    foreach (var obj in quest.objectives)
+                    {
+                        entry.ObjectiveCompleted[obj.guid] = true;
+                        OnObjectiveChanged?.Invoke(questGuid, obj.guid, true);
+                    }
+                }
+            }
+
             quests[questGuid].Status = QuestStatus.Completed;
             Debug.Log($"[QuestManager] Quest completada: {GetQuestTitle(questGuid)}");
             NotifyStatusChanged(questGuid, quests[questGuid].Status);

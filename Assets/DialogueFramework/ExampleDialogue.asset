@@ -19,6 +19,9 @@ MonoBehaviour:
   - guid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
     name: TieneHierro
     value: 0
+  - guid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+    name: HierroEntregado
+    value: 0
   quests:
   - guid: c266e66f-6f32-4d2f-9235-80c91248acdd
     title: La Espada del Alba
@@ -40,6 +43,7 @@ MonoBehaviour:
     conditions: []
     questActions: []
     replies: []
+    effects: []
     questRequirements: []
   - guid: a034404f-d82c-4ebf-bce2-bc12c9d1ee30
     title: Oferta de quest
@@ -55,6 +59,7 @@ MonoBehaviour:
       text: "Acepto. \xBFQu\xE9 tengo que hacer?"
     - guid: eaa33749-3844-490c-ad35-fc8024a0fc7f
       text: No es un buen momento.
+    effects: []
     questRequirements:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       requiredStatus: 0
@@ -62,14 +67,15 @@ MonoBehaviour:
     title: Quest aceptada
     dialogue: "Excelente. Las minas est\xE1n al norte. Cuando tengas el hierro, vuelve
       aqu\xED."
-    position: {x: 660, y: -307.2}
+    position: {x: 660, y: -331.2}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+    questGuid: 
     conditions: []
     questActions:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       action: 0
     replies: []
+    effects: []
     questRequirements: []
   - guid: 14717d5c-6c40-40e5-b603-c5f9cdd5cba7
     title: Quest rechazada
@@ -80,6 +86,7 @@ MonoBehaviour:
     conditions: []
     questActions: []
     replies: []
+    effects: []
     questRequirements: []
   - guid: ef6271ec-d4a2-4b9e-bf29-3b2d24b54e0b
     title: Sin hierro (activa)
@@ -87,12 +94,15 @@ MonoBehaviour:
       de domingo."
     position: {x: 332.8, y: 340.8}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: 
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
     conditions:
     - conditionGuid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
       requiredValue: 0
+    - conditionGuid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+      requiredValue: 0
     questActions: []
     replies: []
+    effects: []
     questRequirements:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       requiredStatus: 1
@@ -105,16 +115,18 @@ MonoBehaviour:
     conditions: []
     questActions: []
     replies: []
+    effects: []
     questRequirements: []
   - guid: c7912ba3-73b0-40bf-ac48-a8aa4c42445f
     title: 'Fin: Sin hierro'
     dialogue: "Aldric te se\xF1ala la puerta."
     position: {x: 660, y: 340.8}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: 
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
     conditions: []
     questActions: []
     replies: []
+    effects: []
     questRequirements: []
   - guid: 81243894-45ab-4a4f-95ef-deb82da892b7
     title: Con hierro
@@ -125,10 +137,13 @@ MonoBehaviour:
     conditions:
     - conditionGuid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
       requiredValue: 1
+    - conditionGuid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+      requiredValue: 0
     questActions:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       action: 1
     replies: []
+    effects: []
     questRequirements:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       requiredStatus: 1
@@ -137,32 +152,34 @@ MonoBehaviour:
     dialogue: El martillo retumba en la forja.
     position: {x: 660, y: 712}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: 
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
     conditions: []
     questActions: []
     replies: []
+    effects:
+    - type: 3
+      questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      conditionGuid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+      objectiveGuid: c39d7907-a9ad-45e8-9680-77f642ffd9d6
+    - type: 4
+      questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      conditionGuid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+      objectiveGuid: 
     questRequirements: []
-  - guid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
-    title: Post-quest
-    dialogue: "La Espada del Alba ya est\xE1 lista. Fue un honor trabajar contigo."
-    position: {x: 1003.2, y: 712}
-    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: 
-    conditions: []
-    questActions: []
-    replies: []
-    questRequirements:
-    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
-      requiredStatus: 3
   - guid: db1bf079-0c81-4333-92c0-22377aaa3fbe
     title: 'Fin: Post-quest'
     dialogue: Aldric te hace una reverencia.
-    position: {x: 1348, y: 712}
+    position: {x: 660, y: 1156}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
     questGuid: 
     conditions: []
     questActions: []
     replies: []
+    effects:
+    - type: 1
+      questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      conditionGuid: 
+      objectiveGuid: 
     questRequirements: []
   - guid: e5f2ce79-3383-4016-b906-ef2aea6cd966
     title: "Fin: Acept\xF3"
@@ -173,7 +190,27 @@ MonoBehaviour:
     conditions: []
     questActions: []
     replies: []
+    effects:
+    - type: 0
+      questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      conditionGuid: 
+      objectiveGuid: 
     questRequirements: []
+  - guid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
+    title: Post-quest
+    dialogue: "La Espada del Alba ya est\xE1 lista. Fue un honor trabajar contigo."
+    position: {x: 332.8, y: 1156}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+    conditions:
+    - conditionGuid: dbf33f3a-8edc-4e09-a3de-543ea0c6ecb0
+      requiredValue: 1
+    questActions: []
+    replies: []
+    effects: []
+    questRequirements:
+    - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
+      requiredStatus: 1
   links:
   - outputNodeGuid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
     inputNodeGuid: 81243894-45ab-4a4f-95ef-deb82da892b7
@@ -205,6 +242,6 @@ MonoBehaviour:
   - outputNodeGuid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
     inputNodeGuid: db1bf079-0c81-4333-92c0-22377aaa3fbe
     outputPortGuid: 
-  - outputNodeGuid: b0bb232e-c481-46a0-a5c8-302f831574e9
+  - outputNodeGuid: 2d57a0b0-40aa-4b06-88a1-8a33b18bb30c
     inputNodeGuid: d00f89f5-0a7f-4771-8b0a-7dc7c36724d2
     outputPortGuid: 

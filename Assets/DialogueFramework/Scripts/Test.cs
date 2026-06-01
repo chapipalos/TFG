@@ -8,6 +8,9 @@ public class Test : MonoBehaviour
 
     private PlayerInput playerInput;
 
+    public QuestController quest;
+    public GameObject questPanel;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -28,6 +31,20 @@ public class Test : MonoBehaviour
         if (playerInput.actions["Test"].WasPerformedThisFrame())
         {
             GameEventBus.Raise("OnHierroRecogido");
+        }
+
+        if (playerInput.actions["Quest"].WasPerformedThisFrame())
+        {
+            if (questPanel.activeSelf)
+            {
+                questPanel.SetActive(false);
+                quest.CloseQuestPanel();
+            }
+            else
+            {
+                questPanel.SetActive(true);
+                quest.OpenQuestPanel();
+            }
         }
     }
 }

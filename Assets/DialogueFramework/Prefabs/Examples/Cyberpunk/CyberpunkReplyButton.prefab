@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 8277982773439979524}
   - component: {fileID: 5090242456046469443}
   m_Layer: 0
-  m_Name: ReplyButton
+  m_Name: CyberpunkReplyButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
