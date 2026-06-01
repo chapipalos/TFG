@@ -191,30 +191,36 @@ namespace DialogueFramework.Editor
         {
             var actorDropdown = BuildDynamicDropdown(
                 label: "Actor",
-                getChoices: () => currentGraph.actors.Select(a => a.name).ToList(),
-                emptyLabel: "No actors",
+                getChoices: () =>
+                {
+                    var list = new List<string> { "None" };
+                    list.AddRange(currentGraph.actors.Select(a => a.name));
+                    return list;
+                },
+                emptyLabel: "None",
                 getCurrentValue: () =>
                 {
-                    if (!string.IsNullOrEmpty(Data.actorGuid))
-                    {
-                        var actor = currentGraph.actors.FirstOrDefault(a => a.guid == Data.actorGuid);
-                        if (actor != null) return actor.name;
-                    }
-                    if (currentGraph.actors.Count > 0)
-                    {
-                        Data.actorGuid = currentGraph.actors[0].guid;
-                        return currentGraph.actors[0].name;
-                    }
-                    return "No actors";
+                    if (string.IsNullOrEmpty(Data.actorGuid))
+                        return "None";
+
+                    var actor = currentGraph.actors.FirstOrDefault(a => a.guid == Data.actorGuid);
+                    return actor != null ? actor.name : "None";
                 },
                 onValueChanged: name =>
                 {
+                    if (name == "None")
+                    {
+                        Data.actorGuid = string.Empty;
+                        EditorUtility.SetDirty(currentGraph);
+                        return;
+                    }
+
                     var actor = currentGraph.actors.FirstOrDefault(a => a.name == name);
                     if (actor != null)
                     {
                         Data.actorGuid = actor.guid;
                         EditorUtility.SetDirty(currentGraph);
-                    }
+                    }   
                 }
             );
             extensionContainer.Add(actorDropdown);

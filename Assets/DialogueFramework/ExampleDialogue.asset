@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.GraphData
   actors:
   - guid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    name: Aldric el Herrero
+    name: Aldric
   conditions:
   - guid: d982cd11-a1f9-48fd-9198-c964e7c6f6f9
     name: TieneHierro
@@ -96,16 +96,6 @@ MonoBehaviour:
     questRequirements:
     - questGuid: c266e66f-6f32-4d2f-9235-80c91248acdd
       requiredStatus: 1
-  - guid: e5f2ce79-3383-4016-b906-ef2aea6cd966
-    title: "Fin: Acept\xF3"
-    dialogue: Aldric te entrega un mapa con las minas.
-    position: {x: 1026.4, y: -552.8}
-    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
-    questGuid: 
-    conditions: []
-    questActions: []
-    replies: []
-    questRequirements: []
   - guid: 7c9a0233-eeee-4279-997c-31453c3619af
     title: "Fin: Rechaz\xF3"
     dialogue: Aldric suspira y vuelve al trabajo.
@@ -168,6 +158,16 @@ MonoBehaviour:
     title: 'Fin: Post-quest'
     dialogue: Aldric te hace una reverencia.
     position: {x: 1348, y: 712}
+    actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
+    questGuid: 
+    conditions: []
+    questActions: []
+    replies: []
+    questRequirements: []
+  - guid: e5f2ce79-3383-4016-b906-ef2aea6cd966
+    title: "Fin: Acept\xF3"
+    dialogue: Aldric te entrega un mapa con las minas.
+    position: {x: 1026.4, y: -552.8}
     actorGuid: ca1b5fb4-cfc5-4604-a03f-10dcdd14a42e
     questGuid: 
     conditions: []

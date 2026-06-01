@@ -6,28 +6,37 @@ using UnityEngine.UI;
 
 namespace DialogueFramework
 {
-    public class Dialogue : MonoBehaviour
+    public class DialogueManager : MonoBehaviour
     {
         public bool startDialogue = false;
 
         [Header("Graph")]
         public GraphData graphData;
 
-        [Header("UI - canvas")]
-        private Canvas dialogueCanvas;
-
         [Header("UI — dialogue")]
+        public GameObject m_DialoguePanel;
+        private RectTransform dialoguePanelRect;
+        public GameObject m_ActorPanel;
         public TextMeshProUGUI m_ActorText;
         public TextMeshProUGUI m_DialogueText;
+        public RectTransform m_DialogueBarProgress;
 
         [Header("UI — navigation")]
         public Button m_NextDialogueButton;
+        private TextMeshProUGUI m_NextDialogueButtonText;
+        public string m_NextButtonTextSkip = "Skip";
+        public string m_NextButtonTextContinue = "Continue";
         public Transform m_RepliesPanel;
+        private RectTransform repliesPanelRect;
         public Button m_ReplyButtonPrefab;
 
         [Header("Typewriter")]
         [Range(0.01f, 0.2f)]
         public float charDelay = 0.04f;
+
+        [Tooltip("Suavizado de la barra de progreso. Más alto = más rápido. 10≈instantáneo, 4≈muy suave.")]
+        [Range(1f, 20f)]
+        public float progressBarSmoothing = 8f;
 
         // ── Runtime ───────────────────────────────────────────────────────────
 
@@ -35,35 +44,32 @@ namespace DialogueFramework
         private Dictionary<string, List<NodeLinkData>> outgoingLinks = new();
 
         private DialogueNode currentNode;
+        public DialogueNode CurrentNode => currentNode;
+
         private readonly List<Button> spawnedReplyButtons = new();
+        private int currentReplyIndex = 0;
+
+        // Valor actual visible de la barra (separado del progreso real del texto)
+        private float currentBarProgress = 0f;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
         private void Start()
         {
-            dialogueCanvas = GetComponent<Canvas>();
-            if (dialogueCanvas == null)
-            {
-                Debug.LogError("[Dialogue] No se encontró un Canvas en este GameObject.");
-                return;
-            }
+            repliesPanelRect = m_RepliesPanel.GetComponent<RectTransform>();
+            dialoguePanelRect = m_DialoguePanel.GetComponent<RectTransform>();
+            m_NextDialogueButtonText = m_NextDialogueButton.GetComponentInChildren<TextMeshProUGUI>();
 
-            // FIX 1: registrar el listener UNA sola vez aquí.
-            // Antes se llamaba dentro de StartDialogue(), acumulando un listener
-            // extra en cada conversación → OnNextPressed se ejecutaba N veces.
             m_NextDialogueButton.onClick.RemoveAllListeners();
             m_NextDialogueButton.onClick.AddListener(OnNextPressed);
 
-            dialogueCanvas.gameObject.SetActive(false);
+            m_DialoguePanel.SetActive(false);
         }
-
-        // ── Public entry point ────────────────────────────────────────────────
 
         public void StartDialogue()
         {
             if (graphData == null) { Debug.LogError("[Dialogue] GraphData not assigned."); return; }
 
-            // Reconstruir siempre para reflejar cambios en condiciones / quests
             BuildNodes();
             BuildLinks();
 
@@ -73,11 +79,10 @@ namespace DialogueFramework
             else
                 Debug.LogWarning("[Dialogue] No start node found.");
 
-            dialogueCanvas.gameObject.SetActive(true);
+            m_DialoguePanel.SetActive(true);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(dialoguePanelRect);
             startDialogue = true;
         }
-
-        // ── Update ────────────────────────────────────────────────────────────
 
         void Update()
         {
@@ -88,13 +93,29 @@ namespace DialogueFramework
             currentNode.UpdateDialogue(charDelay);
             m_DialogueText.text = currentNode.stringBuilder.ToString();
 
-            // Typewriter terminó solo → mostrar replies si las hay
+            // Progreso objetivo (avanza a saltos, un salto por carácter añadido)
+            float targetProgress = string.IsNullOrEmpty(currentNode.node.dialogue) ? 1f :
+                (float)currentNode.stringBuilder.Length / currentNode.node.dialogue.Length;
+
+            // Lerp continuo hacia el objetivo. Time.deltaTime hace que sea
+            // independiente del framerate. 1 - exp(-k·dt) es un suavizado
+            // exponencial estable a cualquier fps (no oscila ni se pasa).
+            float t = 1f - Mathf.Exp(-progressBarSmoothing * Time.deltaTime);
+            currentBarProgress = Mathf.Lerp(currentBarProgress, targetProgress, t);
+
+            UpdateBarProgress(currentBarProgress);
+
             if (wasRunning && !currentNode.getRunning())
             {
                 if (HasVisibleReplies(currentNode.node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
-                    m_RepliesPanel.gameObject.SetActive(true);
+                    ShowReplyButtons();
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(repliesPanelRect);
+                }
+                else
+                {
+                    m_NextDialogueButtonText.text = m_NextButtonTextContinue;
                 }
             }
         }
@@ -137,19 +158,24 @@ namespace DialogueFramework
             ExecuteQuestActions(currentNode.node);
             currentNode.StartDialogue();
 
+            // Reiniciar la barra a 0 visualmente al empezar un nodo nuevo
+            currentBarProgress = 0f;
+            UpdateBarProgress(0f);
+
             if (m_ActorText != null)
             {
                 var actor = graphData.actors.Find(a => a.guid == currentNode.node.actorGuid);
+                m_ActorPanel.SetActive(actor != null);
                 m_ActorText.text = actor?.name ?? "";
             }
-
-            m_NextDialogueButton.gameObject.SetActive(true);
-            m_RepliesPanel.gameObject.SetActive(false);
 
             ClearReplyButtons();
 
             if (HasVisibleReplies(currentNode.node))
                 SpawnReplyButtons(currentNode.node);
+
+            m_NextDialogueButton.gameObject.SetActive(true);
+            m_NextDialogueButtonText.text = m_NextButtonTextSkip;
         }
 
         // ── Quest actions ─────────────────────────────────────────────────────
@@ -157,7 +183,6 @@ namespace DialogueFramework
         private void ExecuteQuestActions(NodeData node)
         {
             if (node.questActions == null || node.questActions.Count == 0) return;
-
             var qm = QuestManager.Instance;
             if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); return; }
 
@@ -177,12 +202,10 @@ namespace DialogueFramework
 
         private bool NodeConditionsMet(NodeData node)
         {
-            // 1. Condiciones booleanas (items, zonas, etc.)
             var cm = ConditionManager.Instance;
             if (cm != null && !cm.EvaluateAll(node.conditions))
                 return false;
 
-            // 2. Requisitos de estado de quest
             if (node.questRequirements != null && node.questRequirements.Count > 0)
             {
                 var qm = QuestManager.Instance;
@@ -199,7 +222,7 @@ namespace DialogueFramework
             return true;
         }
 
-        private bool HasVisibleReplies(NodeData node)
+        public bool HasVisibleReplies(NodeData node)
             => node.replies != null && node.replies.Count > 0;
 
         // ── Reply buttons ─────────────────────────────────────────────────────
@@ -210,11 +233,21 @@ namespace DialogueFramework
             {
                 var captured = reply;
                 var btn = Instantiate(m_ReplyButtonPrefab, m_RepliesPanel);
+                btn.gameObject.SetActive(false);
                 var tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
                 if (tmp != null) tmp.text = reply.text;
                 btn.onClick.AddListener(() => OnReplyPressed(captured.guid));
                 spawnedReplyButtons.Add(btn);
             }
+            currentReplyIndex = 0;
+        }
+
+        private void ShowReplyButtons()
+        {
+            foreach (var btn in spawnedReplyButtons)
+                if (btn != null) btn.gameObject.SetActive(true);
+
+            HighlightReply(currentReplyIndex);
         }
 
         private void ClearReplyButtons()
@@ -236,10 +269,17 @@ namespace DialogueFramework
                 if (HasVisibleReplies(currentNode.node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
-                    m_RepliesPanel.gameObject.SetActive(true);
+                    ShowReplyButtons();
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(repliesPanelRect);
+                }
+                else
+                {
+                    m_NextDialogueButtonText.text = m_NextButtonTextContinue;
                 }
                 return;
             }
+
+            if (HasVisibleReplies(currentNode.node)) return;
 
             AdvanceViaPort("");
         }
@@ -255,6 +295,55 @@ namespace DialogueFramework
             }
 
             AdvanceViaPort(replyGuid);
+        }
+
+        public void OnChangedReplySelection(int opt)
+        {
+            if (currentNode == null) return;
+            if (!HasVisibleReplies(currentNode.node)) return;
+
+            if (currentNode.getRunning()) return;
+            if (spawnedReplyButtons.Count == 0) return;
+
+            int count = spawnedReplyButtons.Count;
+            currentReplyIndex = ((currentReplyIndex + opt) % count + count) % count;
+
+            UpdateReplyButtonsSelected(spawnedReplyButtons[currentReplyIndex]);
+        }
+
+        public void OnReplyPressedAction()
+        {
+            if (currentNode == null) return;
+            if (currentNode.getRunning()) return;
+            if (!HasVisibleReplies(currentNode.node)) return;
+            if (spawnedReplyButtons.Count == 0) return;
+
+            var selectedButton = spawnedReplyButtons[currentReplyIndex];
+            selectedButton.onClick?.Invoke();
+        }
+
+        private void UpdateReplyButtonsSelected(Button nextButton)
+        {
+            // Mismo motivo: solo highlight visual, no .Select().
+            HighlightReply(currentReplyIndex);
+        }
+
+        private void HighlightReply(int index)
+        {
+            if (spawnedReplyButtons.Count == 0) return;
+            if (index < 0 || index >= spawnedReplyButtons.Count) return;
+
+            for (int i = 0; i < spawnedReplyButtons.Count; i++)
+            {
+                var btn = spawnedReplyButtons[i];
+                if (btn == null) continue;
+
+                var img = btn.GetComponent<Image>();
+                if (img == null) continue;
+
+                var colors = btn.colors;
+                img.color = (i == index) ? colors.selectedColor : colors.normalColor;
+            }
         }
 
         private void AdvanceViaPort(string outputPortGuid)
@@ -275,12 +364,7 @@ namespace DialogueFramework
                     : link.outputPortGuid == outputPortGuid;
 
                 if (!portMatch) continue;
-
                 if (!nodesByGuid.TryGetValue(link.inputNodeGuid, out var candidate)) continue;
-
-                // FIX 2: evaluar condiciones en runtime, no en tiempo de construcción.
-                // Antes BuildNodes() se llamaba una vez y los nodos no se reevaluaban.
-                // Ahora se comprueba en cada avance con el estado actual del ConditionManager.
                 if (!NodeConditionsMet(candidate.node)) continue;
 
                 matched = link;
@@ -289,10 +373,7 @@ namespace DialogueFramework
 
             if (matched == null)
             {
-                // FIX 3: si ningún link pasa las condiciones, loguear cuáles fallaron
-                // para facilitar el debug en lugar de silenciosamente cerrar el diálogo.
-                Debug.LogWarning($"[Dialogue] Ningún link válido desde '{currentNode.node.title}'. " +
-                                 $"Comprueba que las condiciones del nodo destino se cumplen.");
+                Debug.LogWarning($"[Dialogue] Ningún link válido desde '{currentNode.node.title}'.");
                 EndDialogue();
                 return;
             }
@@ -311,13 +392,16 @@ namespace DialogueFramework
         {
             Debug.Log("[Dialogue] Fin del diálogo.");
             ClearReplyButtons();
-            // FIX 1b: NO llamar RemoveAllListeners() aquí — el listener de Start
-            // debe sobrevivir entre conversaciones.
             m_NextDialogueButton.gameObject.SetActive(false);
-            m_RepliesPanel.gameObject.SetActive(false);
             currentNode = null;
             startDialogue = false;
-            dialogueCanvas.gameObject.SetActive(false);
+            m_DialoguePanel.SetActive(false);
+        }
+
+        public void UpdateBarProgress(float progress)
+        {
+            if (m_DialogueBarProgress != null)
+                m_DialogueBarProgress.localScale = new Vector3(-Mathf.Clamp01(progress), 1f, 1f);
         }
     }
 

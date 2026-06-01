@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "name": "DialogueInput",
+    "maps": [
+        {
+            "name": "Dialogue",
+            "id": "c4befc48-8284-41a9-87b4-e01c528d58ef",
+            "actions": [
+                {
+                    "name": "Skip/Continue",
+                    "type": "Button",
+                    "id": "271c9d58-66fc-4363-8a9f-375256dea833",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "NextReply",
+                    "type": "Button",
+                    "id": "8539e234-08ee-4a6d-a941-6b67b5b03b2c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PreviousReply",
+                    "type": "Button",
+                    "id": "f96ad9e3-191f-4bab-90f4-d8db2a5db0e6",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "96cec6a3-b598-46f6-967c-4a4b996f13e4",
+                    "path": "<Keyboard>/enter",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Skip/Continue",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b06ae38d-96ab-4713-a97d-b71d3c6d509c",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NextReply",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "140c2bcf-b9c7-45fb-b4c8-10cccb3564e8",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PreviousReply",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 public class Test : MonoBehaviour
 {
-    public Dialogue dialogue;
+    public DialogueManager dialogue;
 
     private PlayerInput playerInput;
 
