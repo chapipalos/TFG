@@ -9,61 +9,55 @@ namespace DialogueFramework.Editor
 {
     public class DialogueEditorNode : Node
     {
-        public NodeData Data { get; }
+        public NodeData m_Data { get; }
 
-        // Single input port — always present
-        public Port InputPort;
+        public Port m_InputPort;
+        public Port m_OutputPort;
 
-        // Generic output port — visible only when there are no replies
-        public Port OutputPort;
-
-        // One output port per reply — keyed by PlayerReplyData.guid
-        private readonly Dictionary<string, Port> replyPorts = new();
-
-        private GraphData currentGraph;
+        private readonly Dictionary<string, Port> m_ReplyPorts = new();
+        private GraphData m_CurrentGraph;
 
         public DialogueEditorNode(Vector2 position, NodeData data, GraphData graph)
         {
-            Data = data;
-            currentGraph = graph;
+            m_Data = data;
+            m_CurrentGraph = graph;
 
-            title = data.title;
+            title = data.s_NodeTitle;
             style.width = 260;
 
             // ── Input port ────────────────────────────────────────────────────
-            InputPort = InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(float));
-            InputPort.portName = "In";
-            inputContainer.Add(InputPort);
+            m_InputPort = InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(float));
+            m_InputPort.portName = "In";
+            inputContainer.Add(m_InputPort);
 
             // ── Generic output port (hidden when replies exist) ────────────────
-            OutputPort = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(float));
-            OutputPort.portName = "Out";
-            outputContainer.Add(OutputPort);
+            m_OutputPort = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(float));
+            m_OutputPort.portName = "Out";
+            outputContainer.Add(m_OutputPort);
 
             // ── Fields ────────────────────────────────────────────────────────
             var titleField = new TextField("Name");
-            titleField.SetValueWithoutNotify(data.title);
+            titleField.SetValueWithoutNotify(data.s_NodeTitle);
             titleField.RegisterValueChangedCallback(evt =>
             {
-                Data.title = evt.newValue;
+                m_Data.s_NodeTitle = evt.newValue;
                 title = evt.newValue;
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             });
             extensionContainer.Add(titleField);
 
             var dialogueField = new TextField("Dialogue");
             dialogueField.multiline = true;
-            dialogueField.SetValueWithoutNotify(data.dialogue);
+            dialogueField.SetValueWithoutNotify(data.s_Dialogue);
             dialogueField.RegisterValueChangedCallback(evt =>
             {
-                Data.dialogue = evt.newValue;
-                EditorUtility.SetDirty(currentGraph);
+                m_Data.s_Dialogue = evt.newValue;
+                EditorUtility.SetDirty(m_CurrentGraph);
             });
             extensionContainer.Add(dialogueField);
 
             BuildActorDropdown();
-            //BuildConditionsFoldout();
-            BuildObjectiveConditionFoldout();
+            BuildObjectiveRequirementsFoldout();
             BuildQuestRequirementsFoldout();
             BuildRepliesFoldout();
             BuildEffectsFoldout();
@@ -76,37 +70,34 @@ namespace DialogueFramework.Editor
 
         // ── Reply ports (public API for SaveUtility) ──────────────────────────
 
-        /// <summary>Returns the output port for a given reply GUID, or null.</summary>
         public Port GetReplyPort(string replyGuid)
-            => replyPorts.TryGetValue(replyGuid, out var port) ? port : null;
+            => m_ReplyPorts.TryGetValue(replyGuid, out var port) ? port : null;
 
-        /// <summary>Returns all reply ports in order.</summary>
         public IEnumerable<(string replyGuid, Port port)> GetAllReplyPorts()
-            => replyPorts.Select(kv => (kv.Key, kv.Value));
+            => m_ReplyPorts.Select(kv => (kv.Key, kv.Value));
 
         // ── Replies foldout ───────────────────────────────────────────────────
 
         private void BuildRepliesFoldout()
         {
-            if (Data.replies == null)
-                Data.replies = new List<PlayerReplyData>();
+            if (m_Data.s_Replies == null)
+                m_Data.s_Replies = new List<PlayerReplyData>();
 
             var foldout = new Foldout { text = "Player replies", value = true };
 
-            // Restore existing replies
-            foreach (var reply in Data.replies)
+            foreach (var reply in m_Data.s_Replies)
                 AddReplyRow(foldout, reply);
 
             var addButton = new Button(() =>
             {
                 var reply = new PlayerReplyData
                 {
-                    guid = System.Guid.NewGuid().ToString(),
-                    text = "New reply"
+                    s_RGuid = System.Guid.NewGuid().ToString(),
+                    s_ReplyText = "New reply"
                 };
-                Data.replies.Add(reply);
+                m_Data.s_Replies.Add(reply);
                 AddReplyRow(foldout, reply);
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
                 UpdateGenericPortVisibility();
             })
             { text = "+ Add Reply" };
@@ -119,30 +110,27 @@ namespace DialogueFramework.Editor
 
         private void AddReplyRow(VisualElement container, PlayerReplyData reply)
         {
-            // Create the output port for this reply
             var port = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Single, typeof(float));
-            port.portName = reply.text;
+            port.portName = reply.s_ReplyText;
             outputContainer.Add(port);
-            replyPorts[reply.guid] = port;
+            m_ReplyPorts[reply.s_RGuid] = port;
 
-            // Row with text field + remove button inside the foldout
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
 
             var textField = new TextField();
             textField.style.flexGrow = 1;
-            textField.SetValueWithoutNotify(reply.text);
+            textField.SetValueWithoutNotify(reply.s_ReplyText);
             textField.RegisterValueChangedCallback(evt =>
             {
-                reply.text = evt.newValue;
-                port.portName = evt.newValue;   // keep port label in sync
-                EditorUtility.SetDirty(currentGraph);
+                reply.s_ReplyText = evt.newValue;
+                port.portName = evt.newValue;
+                EditorUtility.SetDirty(m_CurrentGraph);
             });
 
             var removeButton = new Button(() =>
             {
-                // Disconnect and remove port
                 if (port.connected)
                 {
                     var edgesToRemove = port.connections.ToList();
@@ -156,11 +144,11 @@ namespace DialogueFramework.Editor
                 }
 
                 outputContainer.Remove(port);
-                replyPorts.Remove(reply.guid);
-                Data.replies.Remove(reply);
+                m_ReplyPorts.Remove(reply.s_RGuid);
+                m_Data.s_Replies.Remove(reply);
                 container.Remove(row);
 
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
                 UpdateGenericPortVisibility();
                 RefreshPorts();
                 RefreshExpandedState();
@@ -179,27 +167,24 @@ namespace DialogueFramework.Editor
 
         private void BuildEffectsFoldout()
         {
-            if (Data.effects == null)
-                Data.effects = new List<NodeEffectData>();
+            if (m_Data.s_Effects == null)
+                m_Data.s_Effects = new List<NodeEffectData>();
 
             var foldout = new Foldout { text = "Node Effects", value = false };
             var container = new VisualElement();
             foldout.Add(container);
 
-            foreach (var effect in Data.effects)
+            foreach (var effect in m_Data.s_Effects)
                 AddEffectRow(container, effect);
 
             foldout.Add(new Button(() =>
             {
-                var effect = new NodeEffectData { type = NodeEffectType.QuestStart };
-
-                // FIX: asignar el primer GUID disponible al crear el efecto,
-                // no esperar a que el usuario interactúe con el dropdown.
+                var effect = new NodeEffectData { _EffectType = NodeEffectType.QuestStart };
                 AutoAssignTargetGuid(effect);
 
-                Data.effects.Add(effect);
+                m_Data.s_Effects.Add(effect);
                 AddEffectRow(container, effect);
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             })
             { text = "+ Add Effect" });
 
@@ -213,104 +198,70 @@ namespace DialogueFramework.Editor
             row.style.marginBottom = 4;
 
             var typeNames = System.Enum.GetNames(typeof(NodeEffectType)).ToList();
-            var typeDropdown = new PopupField<string>("Type", typeNames, effect.type.ToString());
+            var typeDropdown = new PopupField<string>("Type", typeNames, effect._EffectType.ToString());
 
             var targetRow = new VisualElement();
             targetRow.style.flexDirection = FlexDirection.Column;
+
             System.Action rebuildTargetDropdown = null;
             rebuildTargetDropdown = () =>
             {
                 targetRow.Clear();
 
-                bool isQuest = effect.type == NodeEffectType.QuestStart
-                            || effect.type == NodeEffectType.QuestComplete
-                            || effect.type == NodeEffectType.QuestFail;
+                bool isObjective = effect._EffectType == NodeEffectType.ObjectiveComplete;
 
-                bool isObjective = effect.type == NodeEffectType.ObjectiveComplete;
-
-                if (isQuest || isObjective)
-                {
-                    // Dropdown de quest (común para quest effects y objective effects)
-                    var questDropdown = BuildDynamicDropdown(
-                        label: "Quest",
-                        getChoices: () => currentGraph.quests.Select(q => q.title).ToList(),
-                        emptyLabel: "No quests",
-                        getCurrentValue: () =>
-                        {
-                            var q = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
-                            return q?.title ?? (currentGraph.quests.Count > 0 ? currentGraph.quests[0].title : "No quests");
-                        },
-                        onValueChanged: name =>
-                        {
-                            var q = currentGraph.quests.FirstOrDefault(q => q.title == name);
-                            if (q != null)
-                            {
-                                effect.questGuid = q.guid;
-                                // Al cambiar de quest, resetear el objetivo seleccionado
-                                if (isObjective)
-                                    effect.objectiveGuid = q.objectives.Count > 0 ? q.objectives[0].guid : "";
-                                EditorUtility.SetDirty(currentGraph);
-                                rebuildTargetDropdown();
-                            }
-                        }
-                    );
-                    questDropdown.style.flexGrow = 1;
-                    targetRow.Add(questDropdown);
-
-                    // Segundo dropdown — objetivos de la quest seleccionada
-                    if (isObjective)
+                var questDropdown = BuildDynamicDropdown(
+                    label: "Quest",
+                    getChoices: () => m_CurrentGraph.s_Quests.Select(q => q.s_QuestTitle).ToList(),
+                    emptyLabel: "No quests",
+                    getCurrentValue: () =>
                     {
-                        var quest = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
-                        if (quest != null && quest.objectives.Count > 0)
+                        var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == effect.s_QuestGuid);
+                        return q?.s_QuestTitle ?? (m_CurrentGraph.s_Quests.Count > 0 ? m_CurrentGraph.s_Quests[0].s_QuestTitle : "No quests");
+                    },
+                    onValueChanged: name =>
+                    {
+                        var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QuestTitle == name);
+                        if (q != null)
                         {
-                            var objectiveDropdown = BuildDynamicDropdown(
-                                label: "Objective",
-                                getChoices: () => quest.objectives.Select(o => o.description).ToList(),
-                                emptyLabel: "No objectives",
-                                getCurrentValue: () =>
-                                {
-                                    var o = quest.objectives.FirstOrDefault(o => o.guid == effect.objectiveGuid);
-                                    return o?.description ?? quest.objectives[0].description;
-                                },
-                                onValueChanged: name =>
-                                {
-                                    var o = quest.objectives.FirstOrDefault(o => o.description == name);
-                                    if (o != null)
-                                    {
-                                        effect.objectiveGuid = o.guid;
-                                        EditorUtility.SetDirty(currentGraph);
-                                    }
-                                }
-                            );
-                            objectiveDropdown.style.flexGrow = 1;
-                            targetRow.Add(objectiveDropdown);
+                            effect.s_QuestGuid = q.s_QGuid;
+                            if (isObjective)
+                                effect.s_ObjectiveGuid = q.s_QuestObjectives.Count > 0 ? q.s_QuestObjectives[0].s_OGuid : "";
+                            EditorUtility.SetDirty(m_CurrentGraph);
+                            rebuildTargetDropdown();
                         }
                     }
-                }
-                else
+                );
+                questDropdown.style.flexGrow = 1;
+                targetRow.Add(questDropdown);
+
+                if (isObjective)
                 {
-                    // Dropdown de condiciones
-                    var conditionDropdown = BuildDynamicDropdown(
-                        label: "Condition",
-                        getChoices: () => currentGraph.conditions.Select(c => c.name).ToList(),
-                        emptyLabel: "No conditions",
-                        getCurrentValue: () =>
-                        {
-                            var c = currentGraph.conditions.FirstOrDefault(c => c.guid == effect.conditionGuid);
-                            return c?.name ?? (currentGraph.conditions.Count > 0 ? currentGraph.conditions[0].name : "No conditions");
-                        },
-                        onValueChanged: name =>
-                        {
-                            var c = currentGraph.conditions.FirstOrDefault(c => c.name == name);
-                            if (c != null)
+                    var quest = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == effect.s_QuestGuid);
+                    if (quest != null && quest.s_QuestObjectives.Count > 0)
+                    {
+                        var objectiveDropdown = BuildDynamicDropdown(
+                            label: "Objective",
+                            getChoices: () => quest.s_QuestObjectives.Select(o => o.s_ObjectiveDescription).ToList(),
+                            emptyLabel: "No objectives",
+                            getCurrentValue: () =>
                             {
-                                effect.conditionGuid = c.guid;
-                                EditorUtility.SetDirty(currentGraph);
+                                var o = quest.s_QuestObjectives.FirstOrDefault(o => o.s_OGuid == effect.s_ObjectiveGuid);
+                                return o?.s_ObjectiveDescription ?? quest.s_QuestObjectives[0].s_ObjectiveDescription;
+                            },
+                            onValueChanged: name =>
+                            {
+                                var o = quest.s_QuestObjectives.FirstOrDefault(o => o.s_ObjectiveDescription == name);
+                                if (o != null)
+                                {
+                                    effect.s_ObjectiveGuid = o.s_OGuid;
+                                    EditorUtility.SetDirty(m_CurrentGraph);
+                                }
                             }
-                        }
-                    );
-                    conditionDropdown.style.flexGrow = 1;
-                    targetRow.Add(conditionDropdown);
+                        );
+                        objectiveDropdown.style.flexGrow = 1;
+                        targetRow.Add(objectiveDropdown);
+                    }
                 }
             };
 
@@ -318,18 +269,18 @@ namespace DialogueFramework.Editor
             {
                 if (System.Enum.TryParse<NodeEffectType>(evt.newValue, out var t))
                 {
-                    effect.type = t;
+                    effect._EffectType = t;
                     AutoAssignTargetGuid(effect);
-                    EditorUtility.SetDirty(currentGraph);
+                    EditorUtility.SetDirty(m_CurrentGraph);
                     rebuildTargetDropdown();
                 }
             });
 
             var removeBtn = new Button(() =>
             {
-                Data.effects.Remove(effect);
+                m_Data.s_Effects.Remove(effect);
                 container.Remove(row);
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             })
             { text = "✕ Remove effect" };
 
@@ -341,47 +292,23 @@ namespace DialogueFramework.Editor
             rebuildTargetDropdown();
         }
 
-        /// <summary>
-        /// Asigna el primer target disponible al efecto según su tipo,
-        /// si el GUID correspondiente está vacío. Evita que un efecto
-        /// recién creado se guarde con GUID en blanco.
-        /// </summary>
         private void AutoAssignTargetGuid(NodeEffectData effect)
         {
-            bool isQuest = effect.type == NodeEffectType.QuestStart
-                        || effect.type == NodeEffectType.QuestComplete
-                        || effect.type == NodeEffectType.QuestFail;
+            if (string.IsNullOrEmpty(effect.s_QuestGuid) && m_CurrentGraph.s_Quests.Count > 0)
+                effect.s_QuestGuid = m_CurrentGraph.s_Quests[0].s_QGuid;
 
-            bool isObjective = effect.type == NodeEffectType.ObjectiveComplete;
-
-            if (isQuest || isObjective)
+            if (effect._EffectType == NodeEffectType.ObjectiveComplete && string.IsNullOrEmpty(effect.s_ObjectiveGuid))
             {
-                if (string.IsNullOrEmpty(effect.questGuid) && currentGraph.quests.Count > 0)
-                    effect.questGuid = currentGraph.quests[0].guid;
-
-                if (isObjective && string.IsNullOrEmpty(effect.objectiveGuid))
-                {
-                    var q = currentGraph.quests.FirstOrDefault(q => q.guid == effect.questGuid);
-                    if (q != null && q.objectives.Count > 0)
-                        effect.objectiveGuid = q.objectives[0].guid;
-                }
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(effect.conditionGuid) && currentGraph.conditions.Count > 0)
-                    effect.conditionGuid = currentGraph.conditions[0].guid;
+                var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == effect.s_QuestGuid);
+                if (q != null && q.s_QuestObjectives.Count > 0)
+                    effect.s_ObjectiveGuid = q.s_QuestObjectives[0].s_OGuid;
             }
         }
 
-        /// <summary>
-        /// The generic OutputPort is only shown when there are no replies.
-        /// When replies exist each reply has its own port, so the generic
-        /// one would be redundant and confusing.
-        /// </summary>
         private void UpdateGenericPortVisibility()
         {
-            bool hasReplies = Data.replies != null && Data.replies.Count > 0;
-            OutputPort.style.display = hasReplies ? DisplayStyle.None : DisplayStyle.Flex;
+            bool hasReplies = m_Data.s_Replies != null && m_Data.s_Replies.Count > 0;
+            m_OutputPort.style.display = hasReplies ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         // ── Actor dropdown ────────────────────────────────────────────────────
@@ -393,32 +320,32 @@ namespace DialogueFramework.Editor
                 getChoices: () =>
                 {
                     var list = new List<string> { "None" };
-                    list.AddRange(currentGraph.actors.Select(a => a.name));
+                    list.AddRange(m_CurrentGraph.s_Actors.Select(a => a.s_ActorName));
                     return list;
                 },
                 emptyLabel: "None",
                 getCurrentValue: () =>
                 {
-                    if (string.IsNullOrEmpty(Data.actorGuid))
+                    if (string.IsNullOrEmpty(m_Data.s_ActorGuid))
                         return "None";
 
-                    var actor = currentGraph.actors.FirstOrDefault(a => a.guid == Data.actorGuid);
-                    return actor != null ? actor.name : "None";
+                    var actor = m_CurrentGraph.s_Actors.FirstOrDefault(a => a.s_AGuid == m_Data.s_ActorGuid);
+                    return actor != null ? actor.s_ActorName : "None";
                 },
                 onValueChanged: name =>
                 {
                     if (name == "None")
                     {
-                        Data.actorGuid = string.Empty;
-                        EditorUtility.SetDirty(currentGraph);
+                        m_Data.s_ActorGuid = string.Empty;
+                        EditorUtility.SetDirty(m_CurrentGraph);
                         return;
                     }
 
-                    var actor = currentGraph.actors.FirstOrDefault(a => a.name == name);
+                    var actor = m_CurrentGraph.s_Actors.FirstOrDefault(a => a.s_ActorName == name);
                     if (actor != null)
                     {
-                        Data.actorGuid = actor.guid;
-                        EditorUtility.SetDirty(currentGraph);
+                        m_Data.s_ActorGuid = actor.s_AGuid;
+                        EditorUtility.SetDirty(m_CurrentGraph);
                     }
                 }
             );
@@ -456,186 +383,31 @@ namespace DialogueFramework.Editor
             return field;
         }
 
-        // ── Conditions foldout ────────────────────────────────────────────────
-
-        private void BuildConditionsFoldout()
-        {
-            var foldout = new Foldout { text = "Conditions", value = true };
-            var conditionsContainer = new VisualElement();
-            foldout.Add(conditionsContainer);
-
-            if (Data.conditions == null)
-                Data.conditions = new List<NodeConditionData>();
-
-            foreach (var condition in Data.conditions)
-                AddConditionRow(conditionsContainer, condition);
-
-            foldout.Add(new Button(() =>
-            {
-                if (currentGraph.conditions.Count == 0) return;
-                var newCondition = new NodeConditionData
-                {
-                    conditionGuid = currentGraph.conditions[0].guid,
-                    requiredValue = false
-                };
-                Data.conditions.Add(newCondition);
-                AddConditionRow(conditionsContainer, newCondition);
-                EditorUtility.SetDirty(currentGraph);
-            })
-            { text = "+ Add Condition" });
-
-            extensionContainer.Add(foldout);
-        }
-
-        private void BuildObjectiveConditionFoldout()
-        {
-            var foldout = new Foldout { text = "Objective conditions", value = true };
-            var container = new VisualElement();
-            foldout.Add(container);
-
-            if (Data.conditions == null)
-                Data.conditions = new List<NodeConditionData>();
-
-                foreach (var quest in currentGraph.quests)
-                    foreach (var obj in quest.objectives)
-                        AddObjectiveConditionRow(container, quest, obj);
-
-            foldout.Add(new Button(() =>
-            {
-                if (currentGraph.quests.Count == 0) return;
-                var newObjectiveCondition = new NodeConditionData
-                {
-                    conditionGuid = currentGraph.conditions[0].guid,
-                    requiredValue = false
-                };
-                Data.conditions.Add(newObjectiveCondition);
-                AddConditionRow(container, newObjectiveCondition);
-                EditorUtility.SetDirty(currentGraph);
-            })
-            { text = "+ Add Condition" });
-
-            extensionContainer.Add(foldout);
-        }
-
-        private void AddObjectiveConditionRow(VisualElement container, QuestData data, QuestObjectiveData obj)
-        {
-            // Similar a AddConditionRow pero con dropdown de quests + objectives
-            // en lugar de solo condiciones. Por simplicidad no lo implemento
-            // ahora pero la idea sería que el usuario pueda elegir entre condiciones
-            // normales o condiciones basadas en objetivos de quests.
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-
-            var dropdown = BuildDynamicDropdown(
-                label: string.Empty,
-                getChoices: () => data.objectives.Select(o => o.description).ToList(),
-                emptyLabel: "No objective condition",
-                getCurrentValue: () =>
-                {
-                    var c = data.objectives.FirstOrDefault(o => o.guid == obj.guid);
-                    return c?.description ?? "No objective conditions";
-                },
-                onValueChanged: name =>
-                {
-                    var selected = data.objectives.FirstOrDefault(o => o.description == obj.description);
-                    if (selected != null)
-                    {
-                        obj.guid = selected.guid;
-                        EditorUtility.SetDirty(currentGraph);
-                    }
-                }
-            );
-            dropdown.style.flexGrow = 1;
-
-            var toggle = new Toggle();
-            toggle.value = obj.requiredCompletedState;
-            toggle.RegisterValueChangedCallback(evt =>
-            {
-                obj.requiredCompletedState = evt.newValue;
-                EditorUtility.SetDirty(currentGraph);
-            });
-
-
-            row.Add(dropdown);
-            row.Add(toggle);
-            container.Add(row);
-        }
-
-        private void AddConditionRow(VisualElement container, NodeConditionData data)
-        {
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-
-            var dropdown = BuildDynamicDropdown(
-                label: string.Empty,
-                getChoices: () => currentGraph.conditions.Select(c => c.name).ToList(),
-                emptyLabel: "No conditions",
-                getCurrentValue: () =>
-                {
-                    var c = currentGraph.conditions.FirstOrDefault(c => c.guid == data.conditionGuid);
-                    return c?.name ?? "No conditions";
-                },
-                onValueChanged: name =>
-                {
-                    var selected = currentGraph.conditions.FirstOrDefault(c => c.name == name);
-                    if (selected != null)
-                    {
-                        data.conditionGuid = selected.guid;
-                        EditorUtility.SetDirty(currentGraph);
-                    }
-                }
-            );
-            dropdown.style.flexGrow = 1;
-
-            var toggle = new Toggle();
-            toggle.value = data.requiredValue;
-            toggle.RegisterValueChangedCallback(evt =>
-            {
-                data.requiredValue = evt.newValue;
-                EditorUtility.SetDirty(currentGraph);
-            });
-
-            var removeButton = new Button(() =>
-            {
-                Data.conditions.Remove(data);
-                container.Remove(row);
-                EditorUtility.SetDirty(currentGraph);
-            })
-            { text = "X" };
-
-            row.Add(dropdown);
-            row.Add(toggle);
-            row.Add(removeButton);
-            container.Add(row);
-        }
-
         // ── Quest requirements foldout ───────────────────────────────────────
 
         private void BuildQuestRequirementsFoldout()
         {
-            if (Data.questRequirements == null)
-                Data.questRequirements = new List<NodeQuestRequirement>();
+            if (m_Data.s_QuestRequirements == null)
+                m_Data.s_QuestRequirements = new List<NodeQuestRequirement>();
 
             var foldout = new Foldout { text = "Quest requirements", value = false };
             var container = new VisualElement();
             foldout.Add(container);
 
-            foreach (var req in Data.questRequirements)
+            foreach (var req in m_Data.s_QuestRequirements)
                 AddQuestRequirementRow(container, req);
 
             foldout.Add(new Button(() =>
             {
-                if (currentGraph.quests.Count == 0) return;
+                if (m_CurrentGraph.s_Quests.Count == 0) return;
                 var req = new NodeQuestRequirement
                 {
-                    questGuid = currentGraph.quests[0].guid,
-                    requiredStatus = QuestStatus.Active
+                    s_QuestGuid = m_CurrentGraph.s_Quests[0].s_QGuid,
+                    s_RequiredStatus = QuestStatus.Active
                 };
-                Data.questRequirements.Add(req);
+                m_Data.s_QuestRequirements.Add(req);
                 AddQuestRequirementRow(container, req);
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             })
             { text = "+ Add Quest Requirement" });
 
@@ -648,43 +420,41 @@ namespace DialogueFramework.Editor
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
 
-            // Quest dropdown
             var questDropdown = BuildDynamicDropdown(
                 label: string.Empty,
-                getChoices: () => currentGraph.quests.Select(q => q.title).ToList(),
+                getChoices: () => m_CurrentGraph.s_Quests.Select(q => q.s_QuestTitle).ToList(),
                 emptyLabel: "No quests",
                 getCurrentValue: () =>
                 {
-                    var q = currentGraph.quests.FirstOrDefault(q => q.guid == req.questGuid);
-                    return q?.title ?? "No quests";
+                    var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == req.s_QuestGuid);
+                    return q?.s_QuestTitle ?? "No quests";
                 },
                 onValueChanged: name =>
                 {
-                    var q = currentGraph.quests.FirstOrDefault(q => q.title == name);
-                    if (q != null) { req.questGuid = q.guid; EditorUtility.SetDirty(currentGraph); }
+                    var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QuestTitle == name);
+                    if (q != null) { req.s_QuestGuid = q.s_QGuid; EditorUtility.SetDirty(m_CurrentGraph); }
                 }
             );
             questDropdown.style.flexGrow = 1;
 
-            // Status dropdown
             var statusNames = System.Enum.GetNames(typeof(QuestStatus)).ToList();
-            var currentStatus = req.requiredStatus.ToString();
+            var currentStatus = req.s_RequiredStatus.ToString();
             var statusDropdown = new PopupField<string>(statusNames, currentStatus);
             statusDropdown.style.width = 100;
             statusDropdown.RegisterValueChangedCallback(evt =>
             {
                 if (System.Enum.TryParse<QuestStatus>(evt.newValue, out var s))
                 {
-                    req.requiredStatus = s;
-                    EditorUtility.SetDirty(currentGraph);
+                    req.s_RequiredStatus = s;
+                    EditorUtility.SetDirty(m_CurrentGraph);
                 }
             });
 
             var removeBtn = new Button(() =>
             {
-                Data.questRequirements.Remove(req);
+                m_Data.s_QuestRequirements.Remove(req);
                 container.Remove(row);
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             })
             { text = "✕" };
 
@@ -692,6 +462,149 @@ namespace DialogueFramework.Editor
             row.Add(statusDropdown);
             row.Add(removeBtn);
             container.Add(row);
+        }
+
+        // ── Objective requirements foldout ────────────────────────────────────
+
+        private void BuildObjectiveRequirementsFoldout()
+        {
+            if (m_Data.s_ObjectiveRequirements == null)
+                m_Data.s_ObjectiveRequirements = new List<NodeObjectiveRequirement>();
+
+            var foldout = new Foldout { text = "Objective requirements", value = true };
+            var container = new VisualElement();
+            foldout.Add(container);
+
+            foreach (var req in m_Data.s_ObjectiveRequirements)
+                AddObjectiveRequirementRow(container, req);
+
+            foldout.Add(new Button(() =>
+            {
+                if (m_CurrentGraph.s_Quests.Count == 0) return;
+
+                var firstQuest = m_CurrentGraph.s_Quests[0];
+                if (firstQuest.s_QuestObjectives.Count == 0) return;
+
+                var req = new NodeObjectiveRequirement
+                {
+                    s_QuestGuid = firstQuest.s_QGuid,
+                    s_ObjectiveGuid = firstQuest.s_QuestObjectives[0].s_OGuid,
+                    s_MustBeCompleted = true
+                };
+                m_Data.s_ObjectiveRequirements.Add(req);
+                AddObjectiveRequirementRow(container, req);
+                EditorUtility.SetDirty(m_CurrentGraph);
+            })
+            { text = "+ Add Objective Requirement" });
+
+            extensionContainer.Add(foldout);
+        }
+
+        private void AddObjectiveRequirementRow(VisualElement container, NodeObjectiveRequirement req)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Column;
+            row.style.marginBottom = 4;
+
+            System.Action rebuildObjectiveDropdown = null;
+            var objectiveDropdownContainer = new VisualElement();
+            objectiveDropdownContainer.style.flexGrow = 1;
+
+            var questDropdown = BuildDynamicDropdown(
+                label: "Quest",
+                getChoices: () => m_CurrentGraph.s_Quests.Select(q => q.s_QuestTitle).ToList(),
+                emptyLabel: "No quests",
+                getCurrentValue: () =>
+                {
+                    var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == req.s_QuestGuid);
+                    return q?.s_QuestTitle ?? (m_CurrentGraph.s_Quests.Count > 0 ? m_CurrentGraph.s_Quests[0].s_QuestTitle : "No quests");
+                },
+                onValueChanged: name =>
+                {
+                    var q = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QuestTitle == name);
+                    if (q != null)
+                    {
+                        req.s_QuestGuid = q.s_QGuid;
+                        req.s_ObjectiveGuid = q.s_QuestObjectives.Count > 0 ? q.s_QuestObjectives[0].s_OGuid : "";
+                        EditorUtility.SetDirty(m_CurrentGraph);
+                        rebuildObjectiveDropdown?.Invoke();
+                    }
+                }
+            );
+
+            var objectiveRow = new VisualElement();
+            objectiveRow.style.flexDirection = FlexDirection.Row;
+            objectiveRow.style.alignItems = Align.Center;
+
+            rebuildObjectiveDropdown = () =>
+            {
+                objectiveDropdownContainer.Clear();
+
+                var quest = m_CurrentGraph.s_Quests.FirstOrDefault(q => q.s_QGuid == req.s_QuestGuid);
+                if (quest == null || quest.s_QuestObjectives.Count == 0)
+                {
+                    objectiveDropdownContainer.Add(new Label("No objectives"));
+                    return;
+                }
+
+                var objectiveDropdown = BuildDynamicDropdown(
+                    label: "Objective",
+                    getChoices: () => quest.s_QuestObjectives.Select(o => o.s_ObjectiveDescription).ToList(),
+                    emptyLabel: "No objectives",
+                    getCurrentValue: () =>
+                    {
+                        var o = quest.s_QuestObjectives.FirstOrDefault(o => o.s_OGuid == req.s_ObjectiveGuid);
+                        return o?.s_ObjectiveDescription ?? quest.s_QuestObjectives[0].s_ObjectiveDescription;
+                    },
+                    onValueChanged: name =>
+                    {
+                        var o = quest.s_QuestObjectives.FirstOrDefault(o => o.s_ObjectiveDescription == name);
+                        if (o != null)
+                        {
+                            req.s_ObjectiveGuid = o.s_OGuid;
+                            EditorUtility.SetDirty(m_CurrentGraph);
+                        }
+                    }
+                );
+                objectiveDropdown.style.flexGrow = 1;
+                objectiveDropdownContainer.Add(objectiveDropdown);
+            };
+
+            objectiveRow.Add(objectiveDropdownContainer);
+
+            var bottomRow = new VisualElement();
+            bottomRow.style.flexDirection = FlexDirection.Row;
+            bottomRow.style.alignItems = Align.Center;
+            bottomRow.style.justifyContent = Justify.SpaceBetween;
+
+            var toggle = new Toggle("Must be completed");
+            toggle.value = req.s_MustBeCompleted;
+            toggle.RegisterValueChangedCallback(evt =>
+            {
+                req.s_MustBeCompleted = evt.newValue;
+                EditorUtility.SetDirty(m_CurrentGraph);
+            });
+            toggle.style.flexGrow = 1;
+
+            var removeBtn = new Button(() =>
+            {
+                m_Data.s_ObjectiveRequirements.Remove(req);
+                container.Remove(row);
+                EditorUtility.SetDirty(m_CurrentGraph);
+            })
+            { text = "✕" };
+            removeBtn.style.flexShrink = 0;
+            removeBtn.style.width = 24;
+
+            bottomRow.Add(toggle);
+            bottomRow.Add(removeBtn);
+
+            row.Add(questDropdown);
+            row.Add(objectiveRow);
+            row.Add(bottomRow);
+            container.Add(row);
+
+            rebuildObjectiveDropdown();
         }
 
         // ── Context menu ──────────────────────────────────────────────────────
@@ -706,27 +619,42 @@ namespace DialogueFramework.Editor
                 if (graphView == null) return;
 
                 Vector2 pos = GetPosition().position + new Vector2(30, 30);
-                var clone = graphView.CreateNode(pos, Data.title + " (copy)", Data.dialogue);
+                var clone = graphView.CreateNode(pos, m_Data.s_NodeTitle + " (copy)", m_Data.s_Dialogue);
                 if (clone == null) return;
 
-                clone.Data.actorGuid = Data.actorGuid;
-                clone.Data.questGuid = Data.questGuid;
-                clone.Data.conditions = Data.conditions
-                    .Select(c => new NodeConditionData
+                clone.m_Data.s_ActorGuid = m_Data.s_ActorGuid;
+
+                clone.m_Data.s_QuestRequirements = m_Data.s_QuestRequirements
+                    .Select(r => new NodeQuestRequirement
                     {
-                        conditionGuid = c.conditionGuid,
-                        requiredValue = c.requiredValue
+                        s_QuestGuid = r.s_QuestGuid,
+                        s_RequiredStatus = r.s_RequiredStatus
                     }).ToList();
 
-                // Deep-copy replies (new GUIDs so ports don't clash)
-                clone.Data.replies = Data.replies
+                clone.m_Data.s_ObjectiveRequirements = m_Data.s_ObjectiveRequirements
+                    .Select(r => new NodeObjectiveRequirement
+                    {
+                        s_QuestGuid = r.s_QuestGuid,
+                        s_ObjectiveGuid = r.s_ObjectiveGuid,
+                        s_MustBeCompleted = r.s_MustBeCompleted
+                    }).ToList();
+
+                clone.m_Data.s_Effects = m_Data.s_Effects
+                    .Select(e => new NodeEffectData
+                    {
+                        _EffectType = e._EffectType,
+                        s_QuestGuid = e.s_QuestGuid,
+                        s_ObjectiveGuid = e.s_ObjectiveGuid
+                    }).ToList();
+
+                clone.m_Data.s_Replies = m_Data.s_Replies
                     .Select(r => new PlayerReplyData
                     {
-                        guid = System.Guid.NewGuid().ToString(),
-                        text = r.text
+                        s_RGuid = System.Guid.NewGuid().ToString(),
+                        s_ReplyText = r.s_ReplyText
                     }).ToList();
 
-                EditorUtility.SetDirty(currentGraph);
+                EditorUtility.SetDirty(m_CurrentGraph);
             });
         }
     }

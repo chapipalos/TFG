@@ -2,48 +2,52 @@ using DialogueFramework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Test : MonoBehaviour
+namespace DialogueFramework
 {
-    public DialogueManager dialogue;
-
-    private PlayerInput playerInput;
-
-    public QuestController quest;
-    public GameObject questPanel;
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public class Test : MonoBehaviour
     {
-        playerInput = GetComponent<PlayerInput>();
-    }
+        public DialogueManager dialogue;
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (playerInput.actions["Interact"].WasPerformedThisFrame())
+        private PlayerInput playerInput;
+
+        public QuestController quest;
+        public GameObject questPanel;
+
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        void Start()
         {
-            if (!dialogue.startDialogue)
-            {
-                dialogue.StartDialogue();
-            }
+            playerInput = GetComponent<PlayerInput>();
         }
 
-        if (playerInput.actions["Test"].WasPerformedThisFrame())
+        // Update is called once per frame
+        void Update()
         {
-            GameEventBus.Raise("OnHierroRecogido");
-        }
-
-        if (playerInput.actions["Quest"].WasPerformedThisFrame())
-        {
-            if (questPanel.activeSelf)
+            if (playerInput.actions["Interact"].WasPerformedThisFrame())
             {
-                questPanel.SetActive(false);
-                quest.CloseQuestPanel();
+                if (!dialogue.m_StartDialogue)
+                {
+                    dialogue.StartDialogue();
+                }
             }
-            else
+
+            if (playerInput.actions["Test"].WasPerformedThisFrame())
             {
-                questPanel.SetActive(true);
-                quest.OpenQuestPanel();
+                Debug.Log("[Test] Lanzando OnHierroRecogido");
+                GameEventBus.Raise("OnHierroRecogido");
+            }
+
+            if (playerInput.actions["Quest"].WasPerformedThisFrame())
+            {
+                if (questPanel.activeSelf)
+                {
+                    questPanel.SetActive(false);
+                    quest.CloseQuestPanel();
+                }
+                else
+                {
+                    questPanel.SetActive(true);
+                    quest.OpenQuestPanel();
+                }
             }
         }
     }

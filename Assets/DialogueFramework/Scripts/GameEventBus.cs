@@ -5,20 +5,20 @@ using UnityEngine;
 namespace DialogueFramework
 {
     /// <summary>
-    /// Bus de eventos estático. No necesita assets ni ScriptableObjects.
-    /// Los eventos se identifican por nombre (string).
+    /// Static event bus. Does not require assets or ScriptableObjects.
+    /// Events are identified by name (string).
     ///
-    /// Emitir:    GameEventBus.Raise("OnHierroRecogido");
-    /// Escuchar:  GameEventBus.Subscribe("OnHierroRecogido", MiCallback);
-    /// Dejar:     GameEventBus.Unsubscribe("OnHierroRecogido", MiCallback);
+    /// Raise:       GameEventBus.Raise("OnIronCollected");
+    /// Subscribe:   GameEventBus.Subscribe("OnIronCollected", MyCallback);
+    /// Unsubscribe: GameEventBus.Unsubscribe("OnIronCollected", MyCallback);
     /// </summary>
     public static class GameEventBus
     {
-        private static readonly Dictionary<string, Action> events = new();
+        private static readonly Dictionary<string, Action> m_Events = new();
 
         public static void Raise(string eventName)
         {
-            if (events.TryGetValue(eventName, out var action))
+            if (m_Events.TryGetValue(eventName, out var action))
             {
                 Debug.Log($"[GameEventBus] {eventName}");
                 action.Invoke();
@@ -27,18 +27,18 @@ namespace DialogueFramework
 
         public static void Subscribe(string eventName, Action callback)
         {
-            if (!events.ContainsKey(eventName))
-                events[eventName] = null;
-            events[eventName] += callback;
+            if (!m_Events.ContainsKey(eventName))
+                m_Events[eventName] = null;
+            m_Events[eventName] += callback;
         }
 
         public static void Unsubscribe(string eventName, Action callback)
         {
-            if (events.ContainsKey(eventName))
-                events[eventName] -= callback;
+            if (m_Events.ContainsKey(eventName))
+                m_Events[eventName] -= callback;
         }
 
-        /// <summary>Limpia todos los eventos. Llámalo al cambiar de escena.</summary>
-        public static void Clear() => events.Clear();
+        /// <summary>Clears all events. Call when changing the scene.</summary>
+        public static void Clear() => m_Events.Clear();
     }
 }

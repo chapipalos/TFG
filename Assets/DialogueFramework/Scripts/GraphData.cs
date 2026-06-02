@@ -7,101 +7,100 @@ namespace DialogueFramework
     [CreateAssetMenu(fileName = "NodeGraph", menuName = "Tools/Node Graph")]
     public class GraphData : ScriptableObject
     {
-        public List<ActorData> actors = new();
-        public List<ConditionData> conditions = new();
-        public List<QuestData> quests = new();
-        public List<NodeData> nodes = new();
-        public List<NodeLinkData> links = new();
+        public List<ActorData> s_Actors = new();
+        public List<QuestData> s_Quests = new();
+        public List<NodeData> s_Nodes = new();
+        public List<NodeLinkData> s_Links = new();
+
+        public List<ConversationData> s_Conversations = new();
+    }
+
+    [Serializable]
+    public class ConversationData
+    {
+        public string s_CGuid;
+        public string s_CName;
     }
 
     [Serializable]
     public class ActorData
     {
-        public string guid;
-        public string name;
-    }
-
-    [Serializable]
-    public class ConditionData
-    {
-        public string guid;
-        public string name;
-        public bool value;
+        public string s_AGuid;
+        public string s_ActorName;
     }
 
     [Serializable]
     public class NodeData
     {
-        public string guid;
-        public string title;
-        public string dialogue;
-        public Vector2 position;
-        public string actorGuid;
-        public string questGuid;
+        public string s_ConversationGuid;
 
-        public List<NodeConditionData> conditions = new();
-        public List<NodeQuestActionData> questActions = new();
-        public List<PlayerReplyData> replies = new();
-        public List<NodeEffectData> effects = new();
+        public string s_NGuid;
+        public string s_NodeTitle;
+        public string s_Dialogue;
+        public Vector2 s_NodePosition;
+        public string s_ActorGuid;
+        public string s_QuestGuid;
 
-        public List<NodeQuestRequirement> questRequirements = new();
+        public List<NodeObjectiveRequirement> s_ObjectiveRequirements = new();
+        public List<NodeQuestActionData> s_QuestActions = new();
+        public List<PlayerReplyData> s_Replies = new();
+        public List<NodeEffectData> s_Effects = new();
+
+        public List<NodeQuestRequirement> s_QuestRequirements = new();
     }
 
     [Serializable]
     public class PlayerReplyData
     {
-        public string guid;
-        public string text;
+        public string s_RGuid;
+        public string s_ReplyText;
     }
 
-    [Serializable]
-    public class NodeConditionData
-    {
-        public string conditionGuid;
-        public bool requiredValue;
-    }
-
-    /// <summary>
-    /// Requisito de estado de quest para un nodo.
-    /// El nodo solo es válido si la quest indicada está en el estado indicado.
-    /// </summary>
     [Serializable]
     public class NodeQuestRequirement
     {
-        public string questGuid;
-        public QuestStatus requiredStatus;
+        public string s_QuestGuid;
+        public QuestStatus s_RequiredStatus;
+    }
+
+    [Serializable]
+    public class NodeObjectiveRequirement
+    {
+        public string s_QuestGuid;
+        public string s_ObjectiveGuid;
+        public bool s_MustBeCompleted;
     }
 
     [Serializable]
     public class NodeLinkData
     {
-        public string outputNodeGuid;
-        public string inputNodeGuid;
-        public string outputPortGuid;
+        public string s_OutputNodeGuid;
+        public string s_InputNodeGuid;
+        public string s_OutputPortGuid;
     }
 
     [Serializable]
     public class QuestData
     {
-        public string guid;
-        public string title;
-        public string description;
-        public List<QuestObjectiveData> objectives = new();
+        public string s_QGuid;
+        public string s_QuestTitle;
+        public string s_QuestDescription;
+        public List<QuestObjectiveData> s_QuestObjectives = new();
     }
 
     [Serializable]
     public class QuestObjectiveData
     {
-        public string guid;
-        public string description;
-        public bool requiredCompletedState;
+        public string s_OGuid;
+        public string s_ObjectiveDescription;
+        public bool s_RequiredCompletedState;
     }
 
     [Serializable]
     public class NodeQuestActionData
     {
-        public string questGuid;
-        public QuestActionType action;
+        public string s_QuestGuid;
+        public QuestActionType s_Action;
     }
 
     public enum QuestActionType
@@ -114,10 +113,9 @@ namespace DialogueFramework
     [Serializable]
     public class NodeEffectData
     {
-        public NodeEffectType type;
-        public string questGuid;
-        public string conditionGuid;
-        public string objectiveGuid;   // ← NUEVO, usado solo si type es ObjectiveComplete
+        public NodeEffectType _EffectType;
+        public string s_QuestGuid;
+        public string s_ObjectiveGuid;
     }
 
     public enum NodeEffectType
@@ -125,10 +123,6 @@ namespace DialogueFramework
         QuestStart,
         QuestComplete,
         QuestFail,
-        ObjectiveComplete,    // ← NUEVO
-
-        ConditionSetTrue,
-        ConditionSetFalse,
-        ConditionToggle
+        ObjectiveComplete
     }
 }

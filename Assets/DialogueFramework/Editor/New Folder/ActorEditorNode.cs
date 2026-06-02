@@ -6,21 +6,21 @@ namespace DialogueFramework.Editor
 {
     public class ActorEditorNode : Node, IListNode<ActorData>
     {
-        public ActorData Data { get; }
+        public ActorData m_Data { get; }
 
         public ActorEditorNode(Vector2 size, ActorData data)
         {
-            Data  = data;
-            title = data.name;
+            m_Data  = data;
+            title = data.s_ActorName;
 
             style.width  = size.x;
             style.height = size.y;
 
             var textField = new TextField("Name");
-            textField.SetValueWithoutNotify(data.name);
+            textField.SetValueWithoutNotify(data.s_ActorName);
             textField.RegisterValueChangedCallback(evt =>
             {
-                Data.name = evt.newValue;
+                m_Data.s_ActorName = evt.newValue;
                 title     = evt.newValue;
             });
 

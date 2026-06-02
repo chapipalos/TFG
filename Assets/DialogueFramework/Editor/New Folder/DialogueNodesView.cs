@@ -12,6 +12,7 @@ namespace DialogueFramework.Editor
         public EditorWindow Window { get; }
 
         private GraphData currentGraph;
+        private string currentConversationGuid;
 
         public DialoguesView(EditorWindow window, GraphData graph)
         {
@@ -19,7 +20,6 @@ namespace DialogueFramework.Editor
             currentGraph = graph;
 
             Insert(0, new GridBackground());
-
             SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
 
             this.AddManipulator(new ContentDragger());
@@ -29,12 +29,16 @@ namespace DialogueFramework.Editor
             serializeGraphElements = _ => string.Empty;
             unserializeAndPaste = (_, _) => { };
 
-            // FIX: persist node position changes when the user drags a node
             graphViewChanged = OnGraphViewChanged;
+        }
 
-            // Nodes and edges are NOT loaded here.
-            // NodeGraphSaveUtility.Load() populates the view so that
-            // nodes and links are always restored together in the right order.
+        public string CurrentConversationGuid => currentConversationGuid;
+
+        /// <summary>Cambia la conversación activa y recarga el view solo con sus nodos.</summary>
+        public void SetCurrentConversation(string conversationGuid)
+        {
+            currentConversationGuid = conversationGuid;
+            NodeGraphSaveUtility.Load(this, currentGraph);
         }
 
         // ── Node creation ─────────────────────────────────────────────────────
@@ -44,23 +48,31 @@ namespace DialogueFramework.Editor
             string nodeName = "New node",
             string dialogue = "")
         {
-            // FIX: guard against null graph instead of throwing a NullReferenceException
             if (currentGraph == null)
             {
                 Debug.LogError("[DialoguesView] Cannot create node — no GraphData assigned.");
                 return null;
             }
 
+            if (string.IsNullOrEmpty(currentConversationGuid))
+            {
+                EditorUtility.DisplayDialog(
+                    "Sin conversación seleccionada",
+                    "Selecciona o crea una conversación antes de añadir nodos.",
+                    "OK");
+                return null;
+            }
+
             var data = new NodeData
             {
-                guid = System.Guid.NewGuid().ToString(),
-                title = nodeName,
-                dialogue = dialogue,
-                position = position,
-                conditions = new List<NodeConditionData>()
+                s_NGuid = System.Guid.NewGuid().ToString(),
+                s_NodeTitle = nodeName,
+                s_Dialogue = dialogue,
+                s_NodePosition = position,
+                s_ConversationGuid = currentConversationGuid
             };
 
-            currentGraph.nodes.Add(data);
+            currentGraph.s_Nodes.Add(data);
             EditorUtility.SetDirty(currentGraph);
 
             return CreateNodeFromData(data);
@@ -68,7 +80,7 @@ namespace DialogueFramework.Editor
 
         public DialogueEditorNode CreateNodeFromData(NodeData data)
         {
-            var node = new DialogueEditorNode(data.position, data, currentGraph);
+            var node = new DialogueEditorNode(data.s_NodePosition, data, currentGraph);
             AddElement(node);
             return node;
         }
@@ -77,27 +89,23 @@ namespace DialogueFramework.Editor
 
         private GraphViewChange OnGraphViewChanged(GraphViewChange change)
         {
-            // FIX: persist position when nodes are moved
             if (change.movedElements != null)
             {
                 foreach (var element in change.movedElements)
-                {
                     if (element is DialogueEditorNode node)
-                        node.Data.position = node.GetPosition().position;
-                }
+                        node.m_Data.s_NodePosition = node.GetPosition().position;
 
                 if (currentGraph != null)
                     EditorUtility.SetDirty(currentGraph);
             }
 
-            // Persist edge removals (node deletions are handled by NodeGraphSaveUtility.Save)
             if (change.elementsToRemove != null)
             {
                 foreach (var element in change.elementsToRemove)
                 {
                     if (element is DialogueEditorNode node && currentGraph != null)
                     {
-                        currentGraph.nodes.Remove(node.Data);
+                        currentGraph.s_Nodes.Remove(node.m_Data);
                         EditorUtility.SetDirty(currentGraph);
                     }
                 }
@@ -105,8 +113,6 @@ namespace DialogueFramework.Editor
 
             return change;
         }
-
-        // ── Port compatibility ────────────────────────────────────────────────
 
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
         {
@@ -117,8 +123,6 @@ namespace DialogueFramework.Editor
             ).ToList();
         }
 
-        // ── Utilities ─────────────────────────────────────────────────────────
-
         public void ClearGraph()
         {
             foreach (var edge in edges.ToList())
@@ -128,13 +132,10 @@ namespace DialogueFramework.Editor
                 RemoveElement(node);
         }
 
-        // ── Context menu ──────────────────────────────────────────────────────
-
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt)
         {
             base.BuildContextualMenu(evt);
 
-            // Convert mouse position from panel space to graph content space
             Vector2 mousePos = viewTransform.matrix.inverse.MultiplyPoint(evt.localMousePosition);
 
             evt.menu.AppendAction("Create node", _ =>

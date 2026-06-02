@@ -8,14 +8,17 @@ namespace DialogueFramework
 {
     public class DialogueManager : MonoBehaviour
     {
-        public bool startDialogue = false;
+        public bool m_StartDialogue = false;
 
         [Header("Graph")]
-        public GraphData graphData;
+        public GraphData m_GraphData;
+
+        [Tooltip("Name of the conversation inside the GraphData (e.g. 'Aldric_Forge').")]
+        public string m_ConversationName;
 
         [Header("UI — dialogue")]
         public GameObject m_DialoguePanel;
-        private RectTransform dialoguePanelRect;
+        private RectTransform m_DialoguePanelRect;
         public GameObject m_ActorPanel;
         public TextMeshProUGUI m_ActorText;
         public TextMeshProUGUI m_DialogueText;
@@ -28,38 +31,40 @@ namespace DialogueFramework
         public string m_NextButtonTextContinue = "Continue";
         public Transform m_RepliesPanel;
         private Image m_RepliesPanelImage;
-        private RectTransform repliesPanelRect;
+        private RectTransform m_RepliesPanelRect;
         public Button m_ReplyButtonPrefab;
 
         [Header("Typewriter")]
         [Range(0.01f, 0.2f)]
-        public float charDelay = 0.04f;
+        public float m_CharDelay = 0.04f;
 
         [Tooltip("Suavizado de la barra de progreso. Más alto = más rápido. 10≈instantáneo, 4≈muy suave.")]
         [Range(1f, 20f)]
-        public float progressBarSmoothing = 8f;
+        public float m_ProgressBarSmoothing = 8f;
 
         // ── Runtime ───────────────────────────────────────────────────────────
 
-        private Dictionary<string, DialogueNode> nodesByGuid = new();
-        private Dictionary<string, List<NodeLinkData>> outgoingLinks = new();
+        private Dictionary<string, DialogueNode> m_NodesByGuid = new();
+        private Dictionary<string, List<NodeLinkData>> m_OutgoingLinks = new();
 
-        private DialogueNode currentNode;
-        public DialogueNode CurrentNode => currentNode;
+        // Resolved at StartDialogue from m_ConversationName
+        private string m_ConversationGuid;
 
-        private readonly List<Button> spawnedReplyButtons = new();
-        private int currentReplyIndex = 0;
+        private DialogueNode m_CurrentNode;
+        public DialogueNode CurrentNode => m_CurrentNode;
 
-        // Valor actual visible de la barra (separado del progreso real del texto)
-        private float currentBarProgress = 0f;
+        private readonly List<Button> m_SpawnedReplyButtons = new();
+        private int m_CurrentReplyIndex = 0;
+
+        private float m_CurrentBarProgress = 0f;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
         private void Start()
         {
-            repliesPanelRect = m_RepliesPanel.GetComponent<RectTransform>();
+            m_RepliesPanelRect = m_RepliesPanel.GetComponent<RectTransform>();
             m_RepliesPanelImage = m_RepliesPanel.TryGetComponent<Image>(out var img) ? img : null;
-            dialoguePanelRect = m_DialoguePanel.GetComponent<RectTransform>();
+            m_DialoguePanelRect = m_DialoguePanel.GetComponent<RectTransform>();
             m_NextDialogueButtonText = m_NextDialogueButton.GetComponentInChildren<TextMeshProUGUI>();
 
             m_NextDialogueButton.onClick.RemoveAllListeners();
@@ -70,54 +75,66 @@ namespace DialogueFramework
 
         public void StartDialogue()
         {
-            if (graphData == null) { Debug.LogError("[Dialogue] GraphData not assigned."); return; }
+            if (m_GraphData == null) { Debug.LogError("[Dialogue] GraphData not assigned."); return; }
+
+            // Resolve the conversation guid from its name
+            if (string.IsNullOrEmpty(m_ConversationName))
+            {
+                Debug.LogError("[Dialogue] Conversation name is empty. Set m_ConversationName in the inspector.");
+                return;
+            }
+
+            var conv = m_GraphData.s_Conversations.Find(c => c.s_CName == m_ConversationName);
+            if (conv == null)
+            {
+                Debug.LogError($"[Dialogue] Conversation '{m_ConversationName}' not found in GraphData.");
+                return;
+            }
+            m_ConversationGuid = conv.s_CGuid;
 
             BuildNodes();
             BuildLinks();
 
             string startGuid = FindStartNodeGuid();
-            if (!string.IsNullOrEmpty(startGuid) && nodesByGuid.TryGetValue(startGuid, out var startNode))
+            if (!string.IsNullOrEmpty(startGuid) && m_NodesByGuid.TryGetValue(startGuid, out var startNode))
                 ShowNode(startNode);
             else
-                Debug.LogWarning("[Dialogue] No start node found.");
+                Debug.LogWarning($"[Dialogue] No start node found in conversation '{m_ConversationName}'.");
 
             m_DialoguePanel.SetActive(true);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(dialoguePanelRect);
-            startDialogue = true;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(m_DialoguePanelRect);
+            m_StartDialogue = true;
         }
 
         void Update()
         {
-            if (!startDialogue) return;
-            if (currentNode == null) { m_DialogueText.text = ""; return; }
+            if (!m_StartDialogue) return;
+            if (m_CurrentNode == null) { m_DialogueText.text = ""; return; }
 
-            bool wasRunning = currentNode.getRunning();
-            currentNode.UpdateDialogue(charDelay);
-            m_DialogueText.text = currentNode.stringBuilder.ToString();
+            bool wasRunning = m_CurrentNode.GetRunning();
+            m_CurrentNode.UpdateDialogue(m_CharDelay);
+            m_DialogueText.text = m_CurrentNode.m_StringBuilder.ToString();
 
-            // Progreso objetivo (avanza a saltos, un salto por carácter añadido)
-            float targetProgress = string.IsNullOrEmpty(currentNode.node.dialogue) ? 1f :
-                (float)currentNode.stringBuilder.Length / currentNode.node.dialogue.Length;
+            float targetProgress = string.IsNullOrEmpty(m_CurrentNode.m_Node.s_Dialogue) ? 1f :
+                (float)m_CurrentNode.m_StringBuilder.Length / m_CurrentNode.m_Node.s_Dialogue.Length;
 
-            // Lerp continuo hacia el objetivo. Time.deltaTime hace que sea
-            // independiente del framerate. 1 - exp(-k·dt) es un suavizado
-            // exponencial estable a cualquier fps (no oscila ni se pasa).
-            float t = 1f - Mathf.Exp(-progressBarSmoothing * Time.deltaTime);
-            currentBarProgress = Mathf.Lerp(currentBarProgress, targetProgress, t);
+            float t = 1f - Mathf.Exp(-m_ProgressBarSmoothing * Time.deltaTime);
+            m_CurrentBarProgress = Mathf.Lerp(m_CurrentBarProgress, targetProgress, t);
 
-            UpdateBarProgress(currentBarProgress);
+            UpdateBarProgress(m_CurrentBarProgress);
 
-            if (wasRunning && !currentNode.getRunning())
+            if (wasRunning && !m_CurrentNode.GetRunning())
             {
-                if (HasVisibleReplies(currentNode.node))
+                if (HasVisibleReplies(m_CurrentNode.m_Node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
                     ShowReplyButtons();
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(repliesPanelRect);
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(m_RepliesPanelRect);
                 }
                 else
                 {
-                    m_NextDialogueButtonText.text = m_NextButtonTextContinue;
+                    if (m_NextDialogueButtonText != null)
+                        m_NextDialogueButtonText.text = m_NextButtonTextContinue;
                 }
             }
         }
@@ -126,124 +143,119 @@ namespace DialogueFramework
 
         private void BuildNodes()
         {
-            nodesByGuid.Clear();
-            foreach (var data in graphData.nodes)
-                nodesByGuid[data.guid] = new DialogueNode { node = data };
+            m_NodesByGuid.Clear();
+            foreach (var data in m_GraphData.s_Nodes)
+            {
+                // Only load nodes belonging to this conversation
+                if (data.s_ConversationGuid != m_ConversationGuid) continue;
+                m_NodesByGuid[data.s_NGuid] = new DialogueNode { m_Node = data };
+            }
         }
 
         private void BuildLinks()
         {
-            outgoingLinks.Clear();
-            foreach (var link in graphData.links)
+            m_OutgoingLinks.Clear();
+            foreach (var link in m_GraphData.s_Links)
             {
-                if (!outgoingLinks.ContainsKey(link.outputNodeGuid))
-                    outgoingLinks[link.outputNodeGuid] = new List<NodeLinkData>();
-                outgoingLinks[link.outputNodeGuid].Add(link);
+                // Only keep links whose endpoints are both in this conversation
+                if (!m_NodesByGuid.ContainsKey(link.s_OutputNodeGuid)) continue;
+                if (!m_NodesByGuid.ContainsKey(link.s_InputNodeGuid)) continue;
+
+                if (!m_OutgoingLinks.ContainsKey(link.s_OutputNodeGuid))
+                    m_OutgoingLinks[link.s_OutputNodeGuid] = new List<NodeLinkData>();
+                m_OutgoingLinks[link.s_OutputNodeGuid].Add(link);
             }
         }
 
         private string FindStartNodeGuid()
         {
+            // Compute incoming links only from nodes in this conversation
             var hasIncoming = new HashSet<string>();
-            foreach (var link in graphData.links) hasIncoming.Add(link.inputNodeGuid);
-            foreach (var node in graphData.nodes)
-                if (!hasIncoming.Contains(node.guid)) return node.guid;
-            return graphData.nodes.Count > 0 ? graphData.nodes[0].guid : null;
+            foreach (var link in m_GraphData.s_Links)
+            {
+                if (!m_NodesByGuid.ContainsKey(link.s_OutputNodeGuid)) continue;
+                if (!m_NodesByGuid.ContainsKey(link.s_InputNodeGuid)) continue;
+                hasIncoming.Add(link.s_InputNodeGuid);
+            }
+
+            foreach (var guid in m_NodesByGuid.Keys)
+                if (!hasIncoming.Contains(guid)) return guid;
+
+            // Fallback: first node of the conversation
+            foreach (var guid in m_NodesByGuid.Keys) return guid;
+            return null;
         }
 
         // ── Node display ──────────────────────────────────────────────────────
 
         private void ShowNode(DialogueNode dialogueNode)
         {
-            currentNode = dialogueNode;
+            m_CurrentNode = dialogueNode;
 
-            ExecuteNodeEffects(currentNode.node);
-            currentNode.StartDialogue();
+            ExecuteNodeEffects(m_CurrentNode.m_Node);
+            m_CurrentNode.StartDialogue();
 
-            // Reiniciar la barra a 0 visualmente al empezar un nodo nuevo
-            currentBarProgress = 0f;
+            m_CurrentBarProgress = 0f;
             UpdateBarProgress(0f);
 
             if (m_ActorText != null)
             {
-                var actor = graphData.actors.Find(a => a.guid == currentNode.node.actorGuid);
+                var actor = m_GraphData.s_Actors.Find(a => a.s_AGuid == m_CurrentNode.m_Node.s_ActorGuid);
                 m_ActorPanel.SetActive(actor != null);
-                m_ActorText.text = actor?.name ?? "";
+                m_ActorText.text = actor?.s_ActorName ?? "";
             }
 
             ClearReplyButtons();
 
-            if (HasVisibleReplies(currentNode.node))
+            if (HasVisibleReplies(m_CurrentNode.m_Node))
             {
-                SpawnReplyButtons(currentNode.node);
+                SpawnReplyButtons(m_CurrentNode.m_Node);
             }
-            else if(m_RepliesPanelImage != null)
+            else if (m_RepliesPanelImage != null)
             {
                 m_RepliesPanelImage.enabled = false;
             }
 
             m_NextDialogueButton.gameObject.SetActive(true);
-            m_NextDialogueButtonText.text = m_NextButtonTextSkip;
+            if (m_NextDialogueButtonText != null)
+                m_NextDialogueButtonText.text = m_NextButtonTextSkip;
         }
-
-        // ── Quest actions ─────────────────────────────────────────────────────
 
         // ── Node effects ─────────────────────────────────────────────────────
 
         private void ExecuteNodeEffects(NodeData node)
         {
-            if (node.effects == null || node.effects.Count == 0) return;
+            if (node.s_Effects == null || node.s_Effects.Count == 0) return;
 
-            var qm = QuestManager.Instance;
-            var cm = ConditionManager.Instance;
+            var qm = QuestManager.m_Instance;
 
-            foreach (var effect in node.effects)
+            foreach (var effect in node.s_Effects)
             {
-                switch (effect.type)
+                switch (effect._EffectType)
                 {
-                    // ── Quest effects ────────────────────────────────────────
                     case NodeEffectType.QuestStart:
-                        if (string.IsNullOrEmpty(effect.questGuid)) break;
-                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
-                        qm.StartQuest(effect.questGuid);
+                        if (string.IsNullOrEmpty(effect.s_QuestGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager not found."); break; }
+                        qm.StartQuest(effect.s_QuestGuid);
                         break;
 
                     case NodeEffectType.QuestComplete:
-                        if (string.IsNullOrEmpty(effect.questGuid)) break;
-                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
-                        qm.CompleteQuest(effect.questGuid);
+                        if (string.IsNullOrEmpty(effect.s_QuestGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager not found."); break; }
+                        qm.CompleteQuest(effect.s_QuestGuid);
                         break;
 
                     case NodeEffectType.QuestFail:
-                        if (string.IsNullOrEmpty(effect.questGuid)) break;
-                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
-                        qm.FailQuest(effect.questGuid);
+                        if (string.IsNullOrEmpty(effect.s_QuestGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager not found."); break; }
+                        qm.FailQuest(effect.s_QuestGuid);
                         break;
 
                     case NodeEffectType.ObjectiveComplete:
-                        if (string.IsNullOrEmpty(effect.questGuid)) break;
-                        if (string.IsNullOrEmpty(effect.objectiveGuid)) break;
-                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager no encontrado."); break; }
-                        qm.SetObjectiveCompleted(effect.questGuid, effect.objectiveGuid, true);
-                        break;
-
-                    // ── Condition effects ────────────────────────────────────
-                    case NodeEffectType.ConditionSetTrue:
-                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
-                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
-                        cm.SetValue(effect.conditionGuid, true);
-                        break;
-
-                    case NodeEffectType.ConditionSetFalse:
-                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
-                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
-                        cm.SetValue(effect.conditionGuid, false);
-                        break;
-
-                    case NodeEffectType.ConditionToggle:
-                        if (string.IsNullOrEmpty(effect.conditionGuid)) break;
-                        if (cm == null) { Debug.LogWarning("[Dialogue] ConditionManager no encontrado."); break; }
-                        cm.ToggleValue(effect.conditionGuid);
+                        if (string.IsNullOrEmpty(effect.s_QuestGuid)) break;
+                        if (string.IsNullOrEmpty(effect.s_ObjectiveGuid)) break;
+                        if (qm == null) { Debug.LogWarning("[Dialogue] QuestManager not found."); break; }
+                        qm.SetObjectiveCompleted(effect.s_QuestGuid, effect.s_ObjectiveGuid, true);
                         break;
                 }
             }
@@ -253,19 +265,31 @@ namespace DialogueFramework
 
         private bool NodeConditionsMet(NodeData node)
         {
-            var cm = ConditionManager.Instance;
-            if (cm != null && !cm.EvaluateAll(node.conditions))
-                return false;
-
-            if (node.questRequirements != null && node.questRequirements.Count > 0)
+            if (node.s_QuestRequirements != null && node.s_QuestRequirements.Count > 0)
             {
-                var qm = QuestManager.Instance;
+                var qm = QuestManager.m_Instance;
                 if (qm == null) return false;
 
-                foreach (var req in node.questRequirements)
+                foreach (var req in node.s_QuestRequirements)
                 {
-                    if (string.IsNullOrEmpty(req.questGuid)) continue;
-                    if (qm.GetStatus(req.questGuid) != req.requiredStatus)
+                    if (string.IsNullOrEmpty(req.s_QuestGuid)) continue;
+                    if (qm.GetStatus(req.s_QuestGuid) != req.s_RequiredStatus)
+                        return false;
+                }
+            }
+
+            if (node.s_ObjectiveRequirements != null && node.s_ObjectiveRequirements.Count > 0)
+            {
+                var qm = QuestManager.m_Instance;
+                if (qm == null) return false;
+
+                foreach (var req in node.s_ObjectiveRequirements)
+                {
+                    if (string.IsNullOrEmpty(req.s_QuestGuid)) continue;
+                    if (string.IsNullOrEmpty(req.s_ObjectiveGuid)) continue;
+
+                    bool isCompleted = qm.IsObjectiveCompleted(req.s_QuestGuid, req.s_ObjectiveGuid);
+                    if (isCompleted != req.s_MustBeCompleted)
                         return false;
                 }
             }
@@ -274,76 +298,77 @@ namespace DialogueFramework
         }
 
         public bool HasVisibleReplies(NodeData node)
-            => node.replies != null && node.replies.Count > 0;
+            => node.s_Replies != null && node.s_Replies.Count > 0;
 
         // ── Reply buttons ─────────────────────────────────────────────────────
 
         private void SpawnReplyButtons(NodeData node)
         {
-            foreach (var reply in node.replies)
+            foreach (var reply in node.s_Replies)
             {
                 var captured = reply;
                 var btn = Instantiate(m_ReplyButtonPrefab, m_RepliesPanel);
                 btn.gameObject.SetActive(false);
                 var tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
-                if (tmp != null) tmp.text = reply.text;
-                btn.onClick.AddListener(() => OnReplyPressed(captured.guid));
-                spawnedReplyButtons.Add(btn);
+                if (tmp != null) tmp.text = reply.s_ReplyText;
+                btn.onClick.AddListener(() => OnReplyPressed(captured.s_RGuid));
+                m_SpawnedReplyButtons.Add(btn);
             }
-            currentReplyIndex = 0;
+            m_CurrentReplyIndex = 0;
         }
 
         private void ShowReplyButtons()
         {
             if (m_RepliesPanelImage != null)
                 m_RepliesPanelImage.enabled = true;
-            foreach (var btn in spawnedReplyButtons)
+            foreach (var btn in m_SpawnedReplyButtons)
                 if (btn != null) btn.gameObject.SetActive(true);
 
-            HighlightReply(currentReplyIndex);
+            HighlightReply(m_CurrentReplyIndex);
         }
 
         private void ClearReplyButtons()
         {
-            foreach (var btn in spawnedReplyButtons)
+            foreach (var btn in m_SpawnedReplyButtons)
                 if (btn != null) Destroy(btn.gameObject);
-            spawnedReplyButtons.Clear();
+            m_SpawnedReplyButtons.Clear();
         }
 
         // ── Input handlers ────────────────────────────────────────────────────
 
         public void OnNextPressed()
         {
-            if (currentNode == null) return;
+            if (m_CurrentNode == null) return;
 
-            if (currentNode.getRunning())
+            if (m_CurrentNode.GetRunning())
             {
-                currentNode.SkipToEnd();
-                if (HasVisibleReplies(currentNode.node))
+                m_CurrentNode.SkipToEnd();
+                if (HasVisibleReplies(m_CurrentNode.m_Node))
                 {
                     m_NextDialogueButton.gameObject.SetActive(false);
                     ShowReplyButtons();
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(repliesPanelRect);
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(m_RepliesPanelRect);
                 }
                 else
                 {
-                    m_NextDialogueButtonText.text = m_NextButtonTextContinue;
+                    if (m_NextDialogueButtonText != null)
+                        m_NextDialogueButtonText.text = m_NextButtonTextContinue;
                 }
                 return;
             }
 
-            if (HasVisibleReplies(currentNode.node)) return;
+            if (HasVisibleReplies(m_CurrentNode.m_Node)) return;
 
             AdvanceViaPort("");
         }
 
         private void OnReplyPressed(string replyGuid)
         {
-            if (currentNode == null) return;
+            if (m_CurrentNode == null) return;
 
-            if (currentNode.getRunning())
+            if (m_CurrentNode.GetRunning())
             {
-                currentNode.SkipToEnd();
+                m_CurrentNode.SkipToEnd();
                 return;
             }
 
@@ -352,58 +377,57 @@ namespace DialogueFramework
 
         public void OnChangedReplySelection(int opt)
         {
-            if (currentNode == null) return;
-            if (!HasVisibleReplies(currentNode.node)) return;
+            if (m_CurrentNode == null) return;
+            if (!HasVisibleReplies(m_CurrentNode.m_Node)) return;
 
-            if (currentNode.getRunning()) return;
-            if (spawnedReplyButtons.Count == 0) return;
+            if (m_CurrentNode.GetRunning()) return;
+            if (m_SpawnedReplyButtons.Count == 0) return;
 
-            int count = spawnedReplyButtons.Count;
-            currentReplyIndex = ((currentReplyIndex + opt) % count + count) % count;
+            int count = m_SpawnedReplyButtons.Count;
+            m_CurrentReplyIndex = ((m_CurrentReplyIndex + opt) % count + count) % count;
 
-            UpdateReplyButtonsSelected(spawnedReplyButtons[currentReplyIndex]);
+            UpdateReplyButtonsSelected(m_SpawnedReplyButtons[m_CurrentReplyIndex]);
         }
 
         public void OnReplyPressedAction()
         {
-            if (currentNode == null) return;
-            if (currentNode.getRunning()) return;
-            if (!HasVisibleReplies(currentNode.node)) return;
-            if (spawnedReplyButtons.Count == 0) return;
+            if (m_CurrentNode == null) return;
+            if (m_CurrentNode.GetRunning()) return;
+            if (!HasVisibleReplies(m_CurrentNode.m_Node)) return;
+            if (m_SpawnedReplyButtons.Count == 0) return;
 
-            var selectedButton = spawnedReplyButtons[currentReplyIndex];
+            var selectedButton = m_SpawnedReplyButtons[m_CurrentReplyIndex];
             selectedButton.onClick?.Invoke();
         }
 
         private void UpdateReplyButtonsSelected(Button nextButton)
         {
-            // Mismo motivo: solo highlight visual, no .Select().
-            HighlightReply(currentReplyIndex);
+            HighlightReply(m_CurrentReplyIndex);
         }
 
         private void HighlightReply(int index)
         {
-            if (spawnedReplyButtons.Count == 0) return;
-            if (index < 0 || index >= spawnedReplyButtons.Count) return;
+            if (m_SpawnedReplyButtons.Count == 0) return;
+            if (index < 0 || index >= m_SpawnedReplyButtons.Count) return;
 
-            for (int i = 0; i < spawnedReplyButtons.Count; i++)
+            for (int i = 0; i < m_SpawnedReplyButtons.Count; i++)
             {
-                var btn = spawnedReplyButtons[i];
+                var btn = m_SpawnedReplyButtons[i];
                 if (btn == null) continue;
 
                 var img = btn.GetComponent<Image>();
                 if (img == null) continue;
 
                 var colors = btn.colors;
-                img.color = (i == index) ? colors.selectedColor : colors.normalColor;
+                img.color = (i == index) ? colors.highlightedColor : colors.normalColor;
             }
         }
 
         private void AdvanceViaPort(string outputPortGuid)
         {
-            string currentGuid = currentNode.node.guid;
+            string currentGuid = m_CurrentNode.m_Node.s_NGuid;
 
-            if (!outgoingLinks.TryGetValue(currentGuid, out var links) || links.Count == 0)
+            if (!m_OutgoingLinks.TryGetValue(currentGuid, out var links) || links.Count == 0)
             {
                 EndDialogue();
                 return;
@@ -413,12 +437,12 @@ namespace DialogueFramework
             foreach (var link in links)
             {
                 bool portMatch = string.IsNullOrEmpty(outputPortGuid)
-                    ? string.IsNullOrEmpty(link.outputPortGuid)
-                    : link.outputPortGuid == outputPortGuid;
+                    ? string.IsNullOrEmpty(link.s_OutputPortGuid)
+                    : link.s_OutputPortGuid == outputPortGuid;
 
                 if (!portMatch) continue;
-                if (!nodesByGuid.TryGetValue(link.inputNodeGuid, out var candidate)) continue;
-                if (!NodeConditionsMet(candidate.node)) continue;
+                if (!m_NodesByGuid.TryGetValue(link.s_InputNodeGuid, out var candidate)) continue;
+                if (!NodeConditionsMet(candidate.m_Node)) continue;
 
                 matched = link;
                 break;
@@ -426,14 +450,14 @@ namespace DialogueFramework
 
             if (matched == null)
             {
-                Debug.LogWarning($"[Dialogue] Ningún link válido desde '{currentNode.node.title}'.");
+                Debug.LogWarning($"[Dialogue] No valid link from '{m_CurrentNode.m_Node.s_NodeTitle}'.");
                 EndDialogue();
                 return;
             }
 
-            if (!nodesByGuid.TryGetValue(matched.inputNodeGuid, out var nextNode))
+            if (!m_NodesByGuid.TryGetValue(matched.s_InputNodeGuid, out var nextNode))
             {
-                Debug.LogWarning($"[Dialogue] Nodo destino no encontrado: {matched.inputNodeGuid}");
+                Debug.LogWarning($"[Dialogue] Destiny node not found: {matched.s_InputNodeGuid}");
                 EndDialogue();
                 return;
             }
@@ -443,11 +467,10 @@ namespace DialogueFramework
 
         private void EndDialogue()
         {
-            Debug.Log("[Dialogue] Fin del diálogo.");
             ClearReplyButtons();
             m_NextDialogueButton.gameObject.SetActive(false);
-            currentNode = null;
-            startDialogue = false;
+            m_CurrentNode = null;
+            m_StartDialogue = false;
             m_DialoguePanel.SetActive(false);
         }
 
@@ -463,47 +486,47 @@ namespace DialogueFramework
     [System.Serializable]
     public class DialogueNode
     {
-        public NodeData node;
-        public StringBuilder stringBuilder = new StringBuilder();
+        public NodeData m_Node;
+        public StringBuilder m_StringBuilder = new StringBuilder();
 
-        private bool nodeRunning = false;
-        private int textCharIndex = 0;
-        private float timer = 0f;
+        private bool m_NodeRunning = false;
+        private int m_TextCharIndex = 0;
+        private float m_Timer = 0f;
 
-        public bool getRunning() => nodeRunning;
-        public void setRunning(bool v) => nodeRunning = v;
+        public bool GetRunning() => m_NodeRunning;
+        public void SetRunning(bool v) => m_NodeRunning = v;
 
         public void StartDialogue()
         {
-            stringBuilder.Clear();
-            textCharIndex = 0;
-            timer = 0f;
-            nodeRunning = true;
+            m_StringBuilder.Clear();
+            m_TextCharIndex = 0;
+            m_Timer = 0f;
+            m_NodeRunning = true;
         }
 
         public void UpdateDialogue(float charDelay)
         {
-            if (!nodeRunning || string.IsNullOrEmpty(node.dialogue)) return;
+            if (!m_NodeRunning || string.IsNullOrEmpty(m_Node.s_Dialogue)) return;
 
-            timer += Time.deltaTime;
-            while (timer >= charDelay && textCharIndex < node.dialogue.Length)
+            m_Timer += Time.deltaTime;
+            while (m_Timer >= charDelay && m_TextCharIndex < m_Node.s_Dialogue.Length)
             {
-                stringBuilder.Append(node.dialogue[textCharIndex]);
-                textCharIndex++;
-                timer -= charDelay;
+                m_StringBuilder.Append(m_Node.s_Dialogue[m_TextCharIndex]);
+                m_TextCharIndex++;
+                m_Timer -= charDelay;
             }
 
-            if (textCharIndex >= node.dialogue.Length)
-                nodeRunning = false;
+            if (m_TextCharIndex >= m_Node.s_Dialogue.Length)
+                m_NodeRunning = false;
         }
 
         public void SkipToEnd()
         {
-            stringBuilder.Clear();
-            stringBuilder.Append(node.dialogue ?? "");
-            textCharIndex = node.dialogue?.Length ?? 0;
-            timer = 0f;
-            nodeRunning = false;
+            m_StringBuilder.Clear();
+            m_StringBuilder.Append(m_Node.s_Dialogue ?? "");
+            m_TextCharIndex = m_Node.s_Dialogue?.Length ?? 0;
+            m_Timer = 0f;
+            m_NodeRunning = false;
         }
     }
 }

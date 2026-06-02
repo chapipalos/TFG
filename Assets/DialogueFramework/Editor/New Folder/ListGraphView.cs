@@ -25,7 +25,7 @@ namespace DialogueFramework.Editor
         // ── Protected – subclass configures these ─────────────────────────────
 
         /// <summary>Height of each node in pixels. Override in subclass.</summary>
-        protected abstract float NodeHeight { get; }
+        protected abstract float m_NodeHeight { get; }
 
         // ── Private state ─────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ namespace DialogueFramework.Editor
 
             if (currentGraph != null)
             {
-                GetDataList(currentGraph).Remove(node.Data);
+                GetDataList(currentGraph).Remove(node.m_Data);
                 EditorUtility.SetDirty(currentGraph);
             }
 
@@ -122,7 +122,7 @@ namespace DialogueFramework.Editor
         {
             if (m_Nodes.Count == 0) return;
 
-            float total   = m_Nodes.Count * (NodeHeight + Spacing);
+            float total   = m_Nodes.Count * (m_NodeHeight + Spacing);
             float visible = layout.height;
             float maxScroll = Mathf.Max(0, total - visible);
 
@@ -146,9 +146,9 @@ namespace DialogueFramework.Editor
             for (int i = 0; i < m_Nodes.Count; i++)
             {
                 var node = m_Nodes[i];
-                node.SetNodeSize(width, NodeHeight);
-                float y = i * (NodeHeight + Spacing) - scrollOffsetY;
-                node.SetPosition(new Rect(0, y, width, NodeHeight));
+                node.SetNodeSize(width, m_NodeHeight);
+                float y = i * (m_NodeHeight + Spacing) - scrollOffsetY;
+                node.SetPosition(new Rect(0, y, width, m_NodeHeight));
             }
         }
     }
@@ -159,7 +159,7 @@ namespace DialogueFramework.Editor
     /// </summary>
     public interface IListNode<out TData>
     {
-        TData Data { get; }
+        TData m_Data { get; }
         void SetNodeSize(float width, float height);
     }
 }
