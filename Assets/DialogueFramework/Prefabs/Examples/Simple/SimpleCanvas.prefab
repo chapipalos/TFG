@@ -356,9 +356,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7770a36921e149940b157fa6d2b113d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueController
-  m_EnterOption: {fileID: 0}
-  m_NextReply: {fileID: 0}
-  m_PreviousReply: {fileID: 0}
 --- !u!114 &4448719883824503257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2047,7 +2044,6 @@ GameObject:
   - component: {fileID: 221463245181647385}
   - component: {fileID: 2638676260597696487}
   - component: {fileID: 3743669299006374065}
-  - component: {fileID: 6104180739370507460}
   m_Layer: 0
   m_Name: SimpleCanvas
   m_TagString: Untagged
@@ -2139,33 +2135,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &6104180739370507460
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5442076953792471118}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d809cddf95cebb47bb10c1163bf3d8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.Dialogue
-  m_StartDialogue: 0
-  m_GraphData: {fileID: 11400000, guid: 4b0725917c975294cb67bdb37b35f280, type: 2}
-  m_ConversationName: Aldric_Forge
-  m_DialoguePanel: {fileID: 151527032493258924}
-  m_ActorPanel: {fileID: 4410633016829831541}
-  m_ActorText: {fileID: 2988643137479322121}
-  m_DialogueText: {fileID: 2361236941666641648}
-  m_DialogueBarProgress: {fileID: 0}
-  m_NextDialogueButton: {fileID: 8584755373415529522}
-  m_NextButtonTextSkip: Skip
-  m_NextButtonTextContinue: Continue
-  m_RepliesPanel: {fileID: 7839501024206998527}
-  m_ReplyButtonPrefab: {fileID: 5090242456046469443, guid: ebf1a69801ca2ae499edbc840224bba8, type: 3}
-  m_CharDelay: 0.04
-  m_ProgressBarSmoothing: 8
 --- !u!1 &5644976606874487366
 GameObject:
   m_ObjectHideFlags: 0

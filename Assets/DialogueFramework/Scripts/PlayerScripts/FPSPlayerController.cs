@@ -3,168 +3,176 @@ using UnityEngine.InputSystem;
 
 namespace DialogueFramework
 {
-    /// <summary>
-    /// Controlador FPS con New Input System usando RIGIDBODY (sin CharacterController).
-    /// Requiere: Rigidbody + Collider (cápsula) + PlayerInput.
-    ///
-    /// Config del Rigidbody en el Inspector:
-    ///   - Freeze Rotation: X, Y, Z (todas marcadas) → el script controla la rotación.
-    ///   - Interpolate: Interpolate (movimiento suave).
-    ///   - Collision Detection: Continuous (evita atravesar suelo a alta velocidad).
-    ///
-    /// Acciones del Input Action Asset:
-    ///   Move (Vector2), Look (Vector2), Jump (Button), Sprint (Button), ToggleCursor (Button).
-    ///   Behavior del PlayerInput: "Send Messages".
-    /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(PlayerInput))]
     public class FPSPlayerController : MonoBehaviour
     {
-        [Header("Movimiento")]
-        public float walkSpeed = 5f;
-        public float runSpeed = 9f;
-        public float jumpForce = 5f;
+        [Header("Movement")]
+        public float m_WalkSpeed = 5f;
 
-        [Header("Detección de suelo")]
-        [Tooltip("Objeto vacío en los pies del jugador")]
-        public Transform groundCheck;
-        public float groundCheckRadius = 0.3f;
-        public LayerMask groundLayer = ~0; // por defecto: todas las capas
+        [Header("Camera")]
+        public Transform m_CameraTransform;
+        public Vector2 m_MouseSensitivity = new Vector2(0.15f, 0.15f);
+        public float m_VerticalLookClamp = 85f;
 
-        [Header("Cámara")]
-        public Transform cameraTransform;
-        public Vector2 mouseSensitivity = new Vector2(0.15f, 0.15f);
-        public float verticalLookClamp = 85f;
+        private Vector2 m_MoveInput;
+        private Vector2 m_LookInput;
+        private bool m_Quest;
+        private bool m_Interact;
+        private bool m_Test1;
+        private bool m_Test2;
 
-        // ── Estado de inputs ────────────────────────────────────────────────────
-        private Vector2 _moveInput;
-        private Vector2 _lookInput;
-        private bool _jumpQueued;
-        private bool _isSprinting;
+        private Rigidbody m_Rigidbody;
+        private float m_VerticalRotation;
 
-        // ── Internos ──────────────────────────────────────────────────────────
-        private Rigidbody _rb;
-        private float _verticalRotation;
-        private bool _isGrounded;
+        [Header("Interaction")]
+        public float m_InteractRange = 3f;
+        private QuestController m_QuestController;
+
+        private bool m_QuestPanelOpen;
 
         // ══════════════════════════════════════════════════════════════════════
         void Awake()
         {
-            _rb = GetComponent<Rigidbody>();
-            _rb.freezeRotation = true; // por si acaso no se marcó en el Inspector
+            m_QuestController = FindFirstObjectByType<QuestController>(FindObjectsInactive.Include);
+            m_Rigidbody = GetComponent<Rigidbody>();
+            m_Rigidbody.freezeRotation = true;
 
-            if (cameraTransform == null)
+            if (m_CameraTransform == null)
             {
                 var cam = GetComponentInChildren<Camera>();
-                if (cam != null) cameraTransform = cam.transform;
-                else Debug.LogError("[FPSPlayerController] Asigna 'cameraTransform' en el Inspector.");
+                if (cam != null) m_CameraTransform = cam.transform;
+                else Debug.LogError("[FPSPlayerController] Asign 'cameraTransform' at Inspector.");
             }
-
-            if (groundCheck == null)
-                Debug.LogWarning("[FPSPlayerController] No hay 'groundCheck' asignado. El salto puede no funcionar bien.");
-
-            LockCursor(true);
         }
 
         void Update()
         {
-            // La rotación de cámara va en Update (suave, ligada a los fps de render)
             HandleLook();
+            HandleQuest();
+            HandleInteract();
+            HandleTest1();
+            HandleTest2();
         }
 
         void FixedUpdate()
         {
-            // La física (mover el rigidbody) va en FixedUpdate
-            CheckGround();
             HandleMovement();
-            HandleJump();
         }
 
-        // ══════════════════════════════════════════════════════════════════════
-        //  CALLBACKS NEW INPUT SYSTEM
-        // ══════════════════════════════════════════════════════════════════════
-        void OnMove(InputValue v) => _moveInput = v.Get<Vector2>();
-        void OnLook(InputValue v) => _lookInput = v.Get<Vector2>();
-        void OnSprint(InputValue v) => _isSprinting = v.isPressed;
-
-        void OnJump(InputValue v)
+        void OnMove(InputValue v)
         {
-            if (v.isPressed) _jumpQueued = true;
+            m_MoveInput = v.Get<Vector2>();
         }
 
-        void OnToggleCursor(InputValue v)
+        void OnLook(InputValue v) => m_LookInput = v.Get<Vector2>();
+
+        void OnInteract(InputValue v)
         {
-            if (v.isPressed) LockCursor(Cursor.lockState != CursorLockMode.Locked);
+            if (v.isPressed) m_Interact = true;
         }
 
-        // ══════════════════════════════════════════════════════════════════════
-        //  LÓGICA
-        // ══════════════════════════════════════════════════════════════════════
+        void OnQuest(InputValue v)
+        {
+            if (v.isPressed) m_Quest = true;
+        }
+
+        void OnTest1(InputValue v)
+        {
+            if (v.isPressed) m_Test1 = true;
+        }
+
+        void OnTest2(InputValue v)
+        {
+            if (v.isPressed) m_Test2 = true;
+        }
 
         void HandleLook()
         {
-            if (Cursor.lockState != CursorLockMode.Locked) return;
+            if (m_QuestPanelOpen || (DialogueManager.Active != null && DialogueManager.Active.m_DialogueRunning)) return;
+            float lookX = m_LookInput.x * m_MouseSensitivity.x;
+            float lookY = m_LookInput.y * m_MouseSensitivity.y;
 
-            float lookX = _lookInput.x * mouseSensitivity.x;
-            float lookY = _lookInput.y * mouseSensitivity.y;
-
-            // Rotación horizontal del cuerpo
             transform.Rotate(Vector3.up * lookX);
 
-            // Rotación vertical de la cámara
-            _verticalRotation -= lookY;
-            _verticalRotation = Mathf.Clamp(_verticalRotation, -verticalLookClamp, verticalLookClamp);
-            cameraTransform.localRotation = Quaternion.Euler(_verticalRotation, 0f, 0f);
-        }
-
-        void CheckGround()
-        {
-            if (groundCheck != null)
-                _isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
+            m_VerticalRotation -= lookY;
+            m_VerticalRotation = Mathf.Clamp(m_VerticalRotation, -m_VerticalLookClamp, m_VerticalLookClamp);
+            m_CameraTransform.localRotation = Quaternion.Euler(m_VerticalRotation, 0f, 0f);
         }
 
         void HandleMovement()
         {
-            float speed = _isSprinting ? runSpeed : walkSpeed;
-
-            Vector3 moveDir = transform.right * _moveInput.x
-                            + transform.forward * _moveInput.y;
+            if (m_QuestPanelOpen || (DialogueManager.Active != null && DialogueManager.Active.m_DialogueRunning)) return;
+            Vector3 moveDir = transform.right * m_MoveInput.x
+                            + transform.forward * m_MoveInput.y;
             moveDir.Normalize();
 
-            // Conservamos la velocidad vertical (gravedad/salto), solo cambiamos la horizontal
-            Vector3 targetVelocity = moveDir * speed;
-            Vector3 velocity = _rb.linearVelocity; // Unity 6+. En versiones antiguas: _rb.velocity
+            Vector3 targetVelocity = moveDir * m_WalkSpeed;
+            Vector3 velocity = m_Rigidbody.linearVelocity;
             velocity.x = targetVelocity.x;
             velocity.z = targetVelocity.z;
-            _rb.linearVelocity = velocity;
+            m_Rigidbody.linearVelocity = velocity;
         }
 
-        void HandleJump()
+        void HandleQuest()
         {
-            if (_jumpQueued && _isGrounded)
+            if (m_Quest)
             {
-                // Resetea la velocidad vertical antes de impulsar (salto consistente)
-                Vector3 v = _rb.linearVelocity;
-                v.y = 0f;
-                _rb.linearVelocity = v;
-
-                _rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+                if (m_QuestController.gameObject.activeSelf)
+                {
+                    m_QuestController.CloseQuestPanel();
+                    m_QuestPanelOpen = false;
+                }
+                else
+                {
+                    m_QuestController.OpenQuestPanel();
+                    m_QuestPanelOpen = true;
+                }
+                m_Quest = false;
             }
-            _jumpQueued = false;
         }
 
-        void LockCursor(bool locked)
+        void HandleInteract()
         {
-            Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
-            Cursor.visible = !locked;
+            if (m_Interact)
+            {
+                if (Physics.Raycast(m_CameraTransform.position, m_CameraTransform.forward, out RaycastHit hit, m_InteractRange))
+                {
+                    DialogueManager npcDialogue = hit.collider.GetComponent<DialogueManager>();
+
+                    if (npcDialogue != null && !npcDialogue.m_DialogueRunning)
+                    {
+                        npcDialogue.StartDialogue();
+                    }
+                }
+
+                m_Interact = false;
+            }
         }
 
-        // Visualiza el radio de detección de suelo en el editor
-        void OnDrawGizmosSelected()
+        void HandleTest1()
         {
-            if (groundCheck == null) return;
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+            if (m_Test1)
+            {
+                GameEventBus.Raise("OnIronPickedUp");
+                m_Test1 = false;
+            }
+        }
+
+        void HandleTest2()
+        {
+            if (m_Test2)
+            {
+                GameEventBus.Raise("OnREADMERead");
+                m_Test2 = false;
+            }
+        }
+
+        void OnDrawGizmos()
+        {
+            if (m_CameraTransform == null) return;
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawRay(m_CameraTransform.position, m_CameraTransform.forward * m_InteractRange);
         }
     }
 }

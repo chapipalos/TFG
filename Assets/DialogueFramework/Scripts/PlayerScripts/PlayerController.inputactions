@@ -25,9 +25,36 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "ToggleCursor",
+                    "name": "Interact",
                     "type": "Button",
-                    "id": "18a4a5b2-8081-4405-b3db-3524610574c1",
+                    "id": "b7e43987-a3dc-4499-bf0a-5490c7b3593c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Quest",
+                    "type": "Button",
+                    "id": "785968ef-6d34-447d-943d-419d8955f769",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Test1",
+                    "type": "Button",
+                    "id": "d64c700f-0a1e-432c-812e-ac5501431967",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Test2",
+                    "type": "Button",
+                    "id": "1b4b455c-8746-4b57-86e8-62c4d3eab157",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -103,12 +130,45 @@
                 },
                 {
                     "name": "",
-                    "id": "8890667d-3dd5-4c4a-801c-88e9ce996785",
-                    "path": "<Keyboard>/escape",
+                    "id": "37ba5b83-5756-4fd7-82ca-95eaa38da933",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ToggleCursor",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0c18400c-f8f4-4d67-b6a9-5a0c6719f2af",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Quest",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e0e7aa2d-0b9d-4a54-8e1f-5bb984794215",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Test1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0bd74397-570a-410a-b4e3-9496250cd7bf",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Test2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

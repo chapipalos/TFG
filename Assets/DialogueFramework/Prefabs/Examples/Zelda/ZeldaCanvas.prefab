@@ -234,8 +234,8 @@ GameObject:
   - component: {fileID: 7754208628733784589}
   - component: {fileID: 8216665761423988963}
   - component: {fileID: 7170837933086067516}
-  - component: {fileID: 3935250623186754087}
-  - component: {fileID: 8442427611956414108}
+  - component: {fileID: 5577575371437616443}
+  - component: {fileID: 6492681950438076506}
   m_Layer: 0
   m_Name: DialoguePanel
   m_TagString: Untagged
@@ -304,7 +304,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &3935250623186754087
+--- !u!114 &5577575371437616443
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -316,10 +316,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7770a36921e149940b157fa6d2b113d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueController
-  m_EnterOption: {fileID: 0}
-  m_NextReply: {fileID: 0}
-  m_PreviousReply: {fileID: 0}
---- !u!114 &8442427611956414108
+--- !u!114 &6492681950438076506
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1791,7 +1788,7 @@ GameObject:
   - component: {fileID: 3534307197683431733}
   - component: {fileID: 59329682535365136}
   - component: {fileID: 9113886001791932076}
-  - component: {fileID: 7688369874496113750}
+  - component: {fileID: 4500645500255637024}
   m_Layer: 0
   m_Name: QuestPanel
   m_TagString: Untagged
@@ -1859,7 +1856,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &7688369874496113750
+--- !u!114 &4500645500255637024
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2941,8 +2938,6 @@ GameObject:
   - component: {fileID: 2210337895684772212}
   - component: {fileID: 2243513330731787572}
   - component: {fileID: 3196541089637378657}
-  - component: {fileID: 6202749484796755641}
-  - component: {fileID: 3978448181637376175}
   m_Layer: 0
   m_Name: ZeldaCanvas
   m_TagString: Untagged
@@ -3034,49 +3029,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &6202749484796755641
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8161123971509175096}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d809cddf95cebb47bb10c1163bf3d8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.Dialogue
-  m_StartDialogue: 0
-  m_GraphData: {fileID: 11400000, guid: 4b0725917c975294cb67bdb37b35f280, type: 2}
-  m_DialoguePanel: {fileID: 607700655547342829}
-  m_ActorPanel: {fileID: 7894650598444165878}
-  m_ActorText: {fileID: 4150793340845756621}
-  m_DialogueText: {fileID: 7722998308434669263}
-  m_DialogueBarProgress: {fileID: 0}
-  m_NextDialogueButton: {fileID: 114784907068896786}
-  m_NextButtonTextSkip: Skip
-  m_NextButtonTextContinue: Continue
-  m_RepliesPanel: {fileID: 8001004091282024257}
-  m_ReplyButtonPrefab: {fileID: 5386290455371187399, guid: c33f3e610935dee4bad5d03cfc86f762, type: 3}
-  m_CharDelay: 0.04
-  m_ProgressBarSmoothing: 8
---- !u!114 &3978448181637376175
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8161123971509175096}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ebb6f047ed785a418b157f820741a78, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.QuestManager
-  m_GraphData: {fileID: 11400000, guid: 4b0725917c975294cb67bdb37b35f280, type: 2}
-  m_ObjectiveBindings:
-  - m_EventName: OnHierroRecogido
-    m_QuestGuid: 5b23df09-5b10-43ae-9b4d-7460b26e6360
-    m_ObjectiveGuid: 1006a1cb-f6f6-4443-8d85-2ffd8faacb1b
 --- !u!1 &9100202000121359530
 GameObject:
   m_ObjectHideFlags: 0

@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DialogueFramework.GraphData
   s_Actors:
   - s_AGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_ActorName: Aldric the Blacksmith
+    s_ActorName: Aldric
+  - s_AGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_ActorName: Cabra
   s_Quests:
   - s_QGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
     s_QuestTitle: The Dawn Sword
@@ -26,12 +28,175 @@ MonoBehaviour:
     - s_OGuid: 47244ea8-4cb2-4392-86fd-246b0f17e19d
       s_ObjectiveDescription: Deliver iron to Aldric
       s_RequiredCompletedState: 1
+  - s_QGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+    s_QuestTitle: Check README
+    s_QuestDescription: Open the README file and read it, to know how to use the
+      asset.
+    s_QuestObjectives:
+    - s_OGuid: 39a130e2-4f82-429c-aa0e-e815f5db9f87
+      s_ObjectiveDescription: Open README
+      s_RequiredCompletedState: 1
   s_Nodes:
+  - s_ConversationGuid: 3f7bc283-a67b-44bb-a412-638c79e44375
+    s_NGuid: 054793f3-82ba-400c-b5dd-08fc473cd7a4
+    s_NodeTitle: Info
+    s_Dialogue: This is a floating dialogue.
+    s_NodePosition: {x: 227.2, y: 162.40001}
+    s_ActorGuid: 
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: 1af017b4-dc96-4daf-8bb4-cb9fc237b5cb
+    s_NodeTitle: Reply
+    s_Dialogue: 'Do you undestand the asset? '
+    s_NodePosition: {x: 241.6, y: 113.600006}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies:
+    - s_RGuid: 74a51d5f-c557-4891-8c40-1c685c9229fa
+      s_ReplyText: Of course bro!
+    - s_RGuid: c9caf98a-e089-40fb-aeba-bdeac87ade53
+      s_ReplyText: Not at all, I'm too lost :(
+    s_Effects: []
+    s_QuestRequirements:
+    - s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_RequiredStatus: 0
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: 9ffc2702-855a-409c-9d3a-61df5d628815
+    s_NodeTitle: Understand
+    s_Dialogue: Perfect brooo, I have you enjoy it!!
+    s_NodePosition: {x: 652.8, y: -319.2}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: c104dd4f-303b-4408-9291-d8afd67b02bb
+    s_NodeTitle: Not
+    s_Dialogue: In that case, I recommend to you to check the README file!
+    s_NodePosition: {x: 652.8, y: 137.6}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects:
+    - _EffectType: 0
+      s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_ObjectiveGuid: 
+    s_QuestRequirements: []
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: fa585b6a-3adf-4ce4-a999-f8c594d69a2d
+    s_NodeTitle: No README read
+    s_Dialogue: Trust me, read the README!!
+    s_NodePosition: {x: 241.6, y: 490.39996}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements:
+    - s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_ObjectiveGuid: 39a130e2-4f82-429c-aa0e-e815f5db9f87
+      s_MustBeCompleted: 0
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements:
+    - s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_RequiredStatus: 1
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: cf0cef2f-6693-4e93-95e5-ee8516d43427
+    s_NodeTitle: Start
+    s_Dialogue: Youuuuu, this is an example of for the conversation 2.
+    s_NodePosition: {x: -204, y: 362.40002}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_NGuid: ff7ea082-23ed-40fb-ac2b-af244306575a
+    s_NodeTitle: README read
+    s_Dialogue: Perfeeect, I hope you have understand the asset. Thanks for downloading!
+    s_NodePosition: {x: 241.6, y: 860}
+    s_ActorGuid: 5c139a8e-f0d8-49c5-b32b-3ae265b480d3
+    s_QuestGuid: 
+    s_ObjectiveRequirements:
+    - s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_ObjectiveGuid: 39a130e2-4f82-429c-aa0e-e815f5db9f87
+      s_MustBeCompleted: 1
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements:
+    - s_QuestGuid: 2856d36b-381c-4e36-976f-adf4aeb72593
+      s_RequiredStatus: 3
   - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
     s_NGuid: ab4d7b4d-2652-452f-bbc4-c9f6c41f20e3
     s_NodeTitle: Intro
     s_Dialogue: Welcome to my forge, traveler! What can I do for you?
-    s_NodePosition: {x: 100, y: 300}
+    s_NodePosition: {x: -12.8, y: 294.40002}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: 3ed8e42a-c526-4962-928d-567bc32055d7
+    s_NodeTitle: Quest accepted
+    s_Dialogue: Excellent. The mines are north. When you have the iron, come back
+      here.
+    s_NodePosition: {x: 660, y: -367.2}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects:
+    - _EffectType: 0
+      s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
+      s_ObjectiveGuid: 
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: 1980be0a-a382-42d8-86de-722716aea372
+    s_NodeTitle: 'End: Accepted'
+    s_Dialogue: Aldric gives you a map with the mines.
+    s_NodePosition: {x: 958.4, y: -367.2}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: 3933da56-8743-471a-a738-7fbc9fe75600
+    s_NodeTitle: Quest refused
+    s_Dialogue: I understand. If you change your mind, you know where to find me.
+    s_NodePosition: {x: 660, y: -51.199997}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: bd5c80e8-58ad-4c88-a1dc-a61958a45313
+    s_NodeTitle: 'End: Refused'
+    s_Dialogue: Aldric sighs and goes back to work.
+    s_NodePosition: {x: 958.4, y: -51.199997}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements: []
@@ -44,7 +209,7 @@ MonoBehaviour:
     s_NodeTitle: Quest offer
     s_Dialogue: I've been looking for someone with guts. I need iron from the Northern
       Mines. Are you interested?
-    s_NodePosition: {x: 380, y: -60}
+    s_NodePosition: {x: 363.2, y: -184.79999}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements: []
@@ -59,38 +224,10 @@ MonoBehaviour:
     - s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
       s_RequiredStatus: 0
   - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 3ed8e42a-c526-4962-928d-567bc32055d7
-    s_NodeTitle: Quest accepted
-    s_Dialogue: Excellent. The mines are north. When you have the iron, come back
-      here.
-    s_NodePosition: {x: 660, y: -150}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects:
-    - _EffectType: 0
-      s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
-      s_ObjectiveGuid: 
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 3933da56-8743-471a-a738-7fbc9fe75600
-    s_NodeTitle: Quest refused
-    s_Dialogue: I understand. If you change your mind, you know where to find me.
-    s_NodePosition: {x: 660, y: 83.99999}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects: []
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
     s_NGuid: ec421178-afd2-4878-bc92-6e7a0104d4c1
     s_NodeTitle: No iron (active)
     s_Dialogue: Back already? I don't see the iron. The mines aren't a Sunday excursion.
-    s_NodePosition: {x: 380, y: 336}
+    s_NodePosition: {x: 363.2, y: 234.40001}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements:
@@ -104,10 +241,22 @@ MonoBehaviour:
     - s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
       s_RequiredStatus: 1
   - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: 9aaf19b8-7769-46df-b639-cdd0f389a2ab
+    s_NodeTitle: 'End: No iron'
+    s_Dialogue: Aldric points you to the door.
+    s_NodePosition: {x: 660, y: 234.40001}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
     s_NGuid: f21afe74-7d4b-404e-b66d-4fa7f0e6e5d0
     s_NodeTitle: No iron (in progress)
     s_Dialogue: I know you're working on it. But I still don't have the iron.
-    s_NodePosition: {x: 380, y: 480}
+    s_NodePosition: {x: 363.2, y: 575.2}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements:
@@ -121,10 +270,22 @@ MonoBehaviour:
     - s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
       s_RequiredStatus: 2
   - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
+    s_NGuid: 3357c82a-db85-4728-8951-476b100189b7
+    s_NodeTitle: 'End: In progress'
+    s_Dialogue: Aldric nods and goes back to the anvil.
+    s_NodePosition: {x: 660, y: 575.2}
+    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
+    s_QuestGuid: 
+    s_ObjectiveRequirements: []
+    s_QuestActions: []
+    s_Replies: []
+    s_Effects: []
+    s_QuestRequirements: []
+  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
     s_NGuid: 5f59b138-9d6b-4d29-9f13-86cf6d72c54c
     s_NodeTitle: With iron
     s_Dialogue: You did it! Top-quality iron. Here's your reward.
-    s_NodePosition: {x: 380, y: 660}
+    s_NodePosition: {x: 363.2, y: 934.39996}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements:
@@ -142,7 +303,7 @@ MonoBehaviour:
     s_NGuid: 34558095-d249-4c33-b5b8-b5cef5132fe0
     s_NodeTitle: Post-quest
     s_Dialogue: The Dawn Sword is ready. It was an honor to work with you.
-    s_NodePosition: {x: 380, y: 840}
+    s_NodePosition: {x: 363.2, y: 1296.8}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements: []
@@ -153,46 +314,10 @@ MonoBehaviour:
     - s_QuestGuid: 1374e3af-23a2-4dc9-8173-6427aeb78081
       s_RequiredStatus: 3
   - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 1980be0a-a382-42d8-86de-722716aea372
-    s_NodeTitle: 'End: Accepted'
-    s_Dialogue: Aldric gives you a map with the mines.
-    s_NodePosition: {x: 940, y: -150}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects: []
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: bd5c80e8-58ad-4c88-a1dc-a61958a45313
-    s_NodeTitle: 'End: Refused'
-    s_Dialogue: Aldric sighs and goes back to work.
-    s_NodePosition: {x: 940, y: 83.99999}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects: []
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 9aaf19b8-7769-46df-b639-cdd0f389a2ab
-    s_NodeTitle: 'End: No iron'
-    s_Dialogue: Aldric points you to the door.
-    s_NodePosition: {x: 660, y: 336}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects: []
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 3357c82a-db85-4728-8951-476b100189b7
-    s_NodeTitle: 'End: In progress'
-    s_Dialogue: Aldric nods and goes back to the anvil.
-    s_NodePosition: {x: 660, y: 480}
+    s_NGuid: 86d408e4-282d-4806-841e-ac672ee1835d
+    s_NodeTitle: 'End: Post-quest'
+    s_Dialogue: Aldric bows to you.
+    s_NodePosition: {x: 660, y: 1296.8}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements: []
@@ -204,19 +329,7 @@ MonoBehaviour:
     s_NGuid: 002b6756-080f-4779-9add-628b48dfd8a3
     s_NodeTitle: 'End: Delivered'
     s_Dialogue: The hammer rings out in the forge.
-    s_NodePosition: {x: 660, y: 660}
-    s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
-    s_QuestGuid: 
-    s_ObjectiveRequirements: []
-    s_QuestActions: []
-    s_Replies: []
-    s_Effects: []
-    s_QuestRequirements: []
-  - s_ConversationGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
-    s_NGuid: 86d408e4-282d-4806-841e-ac672ee1835d
-    s_NodeTitle: 'End: Post-quest'
-    s_Dialogue: Aldric bows to you.
-    s_NodePosition: {x: 660, y: 840}
+    s_NodePosition: {x: 660, y: 934.39996}
     s_ActorGuid: 16494242-e9fe-456d-b498-da381b3a4129
     s_QuestGuid: 
     s_ObjectiveRequirements: []
@@ -225,6 +338,21 @@ MonoBehaviour:
     s_Effects: []
     s_QuestRequirements: []
   s_Links:
+  - s_OutputNodeGuid: 1af017b4-dc96-4daf-8bb4-cb9fc237b5cb
+    s_InputNodeGuid: 9ffc2702-855a-409c-9d3a-61df5d628815
+    s_OutputPortGuid: 74a51d5f-c557-4891-8c40-1c685c9229fa
+  - s_OutputNodeGuid: 1af017b4-dc96-4daf-8bb4-cb9fc237b5cb
+    s_InputNodeGuid: c104dd4f-303b-4408-9291-d8afd67b02bb
+    s_OutputPortGuid: c9caf98a-e089-40fb-aeba-bdeac87ade53
+  - s_OutputNodeGuid: cf0cef2f-6693-4e93-95e5-ee8516d43427
+    s_InputNodeGuid: 1af017b4-dc96-4daf-8bb4-cb9fc237b5cb
+    s_OutputPortGuid: 
+  - s_OutputNodeGuid: cf0cef2f-6693-4e93-95e5-ee8516d43427
+    s_InputNodeGuid: fa585b6a-3adf-4ce4-a999-f8c594d69a2d
+    s_OutputPortGuid: 
+  - s_OutputNodeGuid: cf0cef2f-6693-4e93-95e5-ee8516d43427
+    s_InputNodeGuid: ff7ea082-23ed-40fb-ac2b-af244306575a
+    s_OutputPortGuid: 
   - s_OutputNodeGuid: ab4d7b4d-2652-452f-bbc4-c9f6c41f20e3
     s_InputNodeGuid: 34558095-d249-4c33-b5b8-b5cef5132fe0
     s_OutputPortGuid: 
@@ -267,3 +395,7 @@ MonoBehaviour:
   s_Conversations:
   - s_CGuid: e10bafe8-0378-4b6a-b064-061512bc72bd
     s_CName: Aldric_Forge
+  - s_CGuid: c6f198cc-9733-48df-908b-f3d12779fcd6
+    s_CName: Conversation_2
+  - s_CGuid: 3f7bc283-a67b-44bb-a412-638c79e44375
+    s_CName: Floating_Dialogue
